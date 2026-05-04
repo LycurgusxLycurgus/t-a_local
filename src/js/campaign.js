@@ -19,12 +19,15 @@ export function createCampaign(state, formData) {
       juanete: formData.juaneteClass || "Bardo",
       ironmole: formData.ironmoleClass || "Artificiero"
     },
+    mandatoryRitualIds: Array.isArray(formData.mandatoryRitualIds) ? formData.mandatoryRitualIds : [],
     generatedRoles: {
       juanete: "Awaiting GM subclass and campaign-specific talents.",
       ironmole: "Awaiting GM subclass and campaign-specific talents.",
       vanaheim: "Din, Segismundo, Hagen, and Elektra are available as sphere companions."
     },
     actMap: buildActMap(maxTurns, formData.intensity || "normal"),
+    campaignMap: null,
+    campaignMapStatus: "pending",
     turns: [],
     activeEncounter: null,
     activeOutGameMission: null,
@@ -110,12 +113,8 @@ export function registerScore(campaign, score) {
 
 export function canAdvanceTurn(campaign) {
   const mission = campaign.activeOutGameMission;
-  const encounter = campaign.activeEncounter;
   if (mission?.status === "required" && !mission.completed) {
     return { ok: false, reason: "A required out-game mission is still incomplete." };
-  }
-  if (encounter?.status === "active" && encounter.minigame?.status !== "completed") {
-    return { ok: false, reason: "The active score challenge has not been played." };
   }
   return { ok: true, reason: "" };
 }
@@ -288,26 +287,39 @@ function repairGmPayload(payload, visibleTurnText) {
       ironmole: payload.actionOptions?.ironmole?.length ? payload.actionOptions.ironmole : derived.ironmole
     };
   }
-  if (payload.challengeSignal?.requiresOutGame && !payload.ritualRequest?.title) {
+  if (["combat", "boss"].includes(payload.challengeSignal?.challengeType) && !payload.ritualRequest?.title) {
     const derivedRitual = deriveRitualRequest(visibleTurnText, payload.challengeSignal);
     if (derivedRitual) payload.ritualRequest = derivedRitual;
   }
   return payload;
 }
 
-export function setCurrentTurnDraft(campaign, validation, rawText = "") {
+export function setCurrentTurnDraft(state, campaign, validation, rawText = "") {
   const now = new Date().toISOString();
   const payload = repairGmPayload(validation.payload, validation.visibleTurnText);
   const signal = payload?.challengeSignal || {};
+  const plannedTurn = campaign.campaignMap?.turnPlan?.find((item) => Number(item.turn) === Number(campaign.turnNumber)) || null;
   const opensCombat = ["combat", "boss"].includes(signal.challengeType);
-  const encounter = opensCombat ? createEncounter({ ritualPools: [] }, campaign, {
+  const plannedRitual = plannedTurn?.ritualId ? state.ritualPools.find((ritual) => ritual.id === plannedTurn.ritualId) : null;
+  const encounter = opensCombat ? createEncounter(state, campaign, {
     scale: signal.challengeType === "boss" ? "boss" : "skirmish",
-    difficultyBand: signal.difficultyBand,
-    primaryStat: signal.primaryStat,
-    title: payload?.combatRequest?.title || (signal.challengeType === "boss" ? "Boss Gate" : "GM Combat"),
-    objective: payload?.combatRequest?.objective || "Resolve the threat created by the GM scene."
+    difficultyBand: plannedTurn?.difficultyBand || signal.difficultyBand,
+    primaryStat: plannedTurn?.primaryStat || signal.primaryStat,
+    ritual: plannedRitual || undefined,
+    enemies: normalizeEnemies(payload?.combatRequest?.enemies),
+    title: payload?.combatRequest?.title || plannedTurn?.beat || (signal.challengeType === "boss" ? "Boss Gate" : "GM Combat"),
+    objective: payload?.combatRequest?.objective || plannedTurn?.enemyBrief || "Resolve the threat created by the GM scene."
   }) : null;
-  const ritual = encounter?.ritual || ritualFromPayload(payload);
+  const ritual = encounter?.ritual || null;
+  if (ritual) {
+    payload.ritualRequest = {
+      title: ritual.title,
+      description: ritual.description,
+      sphere: ritual.sphere,
+      size: ritual.size,
+      proofPrompt: ritual.description
+    };
+  }
   if (encounter) {
     encounter.challengeSignal = { ...encounter.challengeSignal, ...signal };
     campaign.activeEncounter = encounter;
@@ -345,6 +357,17 @@ export function setCurrentTurnDraft(campaign, validation, rawText = "") {
   return campaign.currentTurnDraft;
 }
 
+function normalizeEnemies(enemies) {
+  if (!Array.isArray(enemies) || !enemies.length) return null;
+  return enemies.slice(0, 6).map((enemy) => ({
+    id: uid("enemy"),
+    name: enemy.name || "Vanaheim Threat",
+    hp: Number(enemy.hp || enemy.maxHp || 12),
+    maxHp: Number(enemy.maxHp || enemy.hp || 12),
+    condition: enemy.condition || enemy.statHint || "ready"
+  }));
+}
+
 export function validateGmOutput(raw) {
   const text = String(raw || "").trim();
   const result = {
@@ -365,16 +388,10 @@ export function validateGmOutput(raw) {
     result.visibleTurnText = parsed.visibleTurnText || "";
     if (!parsed.visibleTurnText) result.issues.push("JSON is missing visibleTurnText.");
     if (!parsed.challengeSignal) result.issues.push("JSON is missing challengeSignal.");
-    if (result.payload?.challengeSignal?.requiresOutGame && !result.payload?.ritualRequest?.title) result.issues.push("Could not derive ritualRequest from ritualRequest or OUT-GAME.");
+    if (["combat", "boss"].includes(result.payload?.challengeSignal?.challengeType) && !result.payload?.ritualRequest?.title) result.issues.push("Could not derive ritualRequest from ritualRequest or OUT-GAME.");
     if (!parsed.memoryDelta) result.issues.push("JSON is missing memoryDelta.");
   } catch {
-    const requiredSections = ["RESOLUCION", "ESCENA", "ESTADO TACTICO", "OUT-GAME", "ACCIONES POSIBLES", "MECANICA"];
-    const normalized = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-    for (const section of requiredSections) {
-      if (!normalized.includes(section)) {
-        result.issues.push(`Missing section: ${section}`);
-      }
-    }
+    if (text.length < 80) result.issues.push("GM text is too short to play.");
   }
   result.ok = result.issues.length === 0;
   return result;

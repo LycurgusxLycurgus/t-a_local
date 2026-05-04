@@ -104,7 +104,7 @@ export function createEncounter(state, campaign, overrides = {}) {
   const sphere = sphereForStat(primaryStat);
   const ritualSize = isBoss ? "macro" : "micro";
   const usedRitualIds = campaign.turns.flatMap((turn) => turn.activeOutGameMission?.ritual?.id ? [turn.activeOutGameMission.ritual.id] : []);
-  const ritual = selectRitual(state, { size: ritualSize, sphere: sphere.id, avoidIds: usedRitualIds });
+  const ritual = overrides.ritual || selectRitual(state, { size: ritualSize, sphere: sphere.id, avoidIds: usedRitualIds });
   const target = targetForDifficulty(difficultyBand, turnNumber + 1);
   return {
     id: uid("encounter"),
@@ -146,4 +146,8 @@ export function scoreFromTimingPercent(percent) {
   const distance = Math.abs(percent - 50);
   const raw = Math.max(1, Math.round(20 - distance / 2.65));
   return Math.min(20, raw);
+}
+
+export function rollD20() {
+  return Math.floor(Math.random() * 20) + 1;
 }

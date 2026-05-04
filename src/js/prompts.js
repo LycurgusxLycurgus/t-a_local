@@ -5,7 +5,15 @@ Totumas & Aventuras is a fast local-first narrative-tactical campaign engine for
 
 The code owns state, turn count, stats, DCs, rolls, score challenges, rituals, inventory, campaign memory, and validation. The LLM owns narration, consequences, enemy flavor, Vanaheim companion reactions, subclass flavor, and soft proposals.
 
-Every GM turn must keep momentum. A turn must change situation, mechanics, tactical pressure, reward, cost, or discovery.`,
+The app solves a specific problem: turning Epicurogotchi, Vanaheim, out-game rituals, tactical fights, and shared relationship mythology into a playable campaign instead of a loose LLM chat. The interface should feel like a game table with a GM engine behind it, not a model playground.
+
+Epicurogotchi is the shared living pet/context vessel. Piccolo stores discoveries, growth, ritual seeds, and campaign resonance. Turn 0 always begins by checking Piccolo and the living sheet, so the campaign starts from the real state of the shared world.
+
+Vanaheim is the mythic pressure field around Juanete and Ironmole. Its companions are sphere anchors: Din for emotional resonance, Segismundo for body/material pleasure, Hagen for intellect/strategy, and Elektra for aesthetic/creative force. Campaigns should make these pressures concrete through scenes, enemies, gifts, choices, costs, and rituals.
+
+Rituals are not generic side quests. They are diegetic out-game proofs that connect play to real acts, attention, care, training, taste, creation, memory, or experiment. Combat and boss turns can require rituals; ordinary explore/social turns usually should not.
+
+Every campaign needs a meaningful arc: a premise, Vanaheim pressure, recurring antagonist thread, tactical escalation, discoveries for Piccolo, and turns that change the state of the relationship-world. Every GM turn must keep momentum. A turn must change situation, mechanics, tactical pressure, reward, cost, or discovery.`,
 
   "assistants.md": `# Assistants Router
 
@@ -33,12 +41,13 @@ The app expects JSON with:
     "ritualSize": "micro|macro|none"
   },
   "stateDeltaProposal": {},
+  "combatRequest": {"title": "...", "objective": "...", "enemyHint": "...", "enemies": [{"name": "...", "hp": 12, "maxHp": 12, "statHint": "Fuerza", "condition": "ready"}]},
   "ritualRequest": {"title": "...", "description": "...", "sphere": "...", "size": "micro|macro|none", "proofPrompt": "..."},
   "lootProposal": {},
   "memoryDelta": {},
   "validationNotes": []
 }
-\`\`\``
+\`\`\`` 
 };
 
 export const GM_TURN_SCHEMA = {
@@ -101,7 +110,21 @@ export const GM_TURN_SCHEMA = {
       properties: {
         title: { type: "string" },
         objective: { type: "string" },
-        enemyHint: { type: "string" }
+        enemyHint: { type: "string" },
+        enemies: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              hp: { type: "number" },
+              maxHp: { type: "number" },
+              statHint: { type: "string" },
+              condition: { type: "string" }
+            },
+            required: ["name", "hp", "maxHp", "statHint", "condition"]
+          }
+        }
       },
       required: ["title", "objective", "enemyHint"]
     },
@@ -132,13 +155,60 @@ export const GM_TURN_SCHEMA = {
   required: ["visibleTurnText", "actionOptions", "challengeSignal", "stateDeltaProposal", "ritualRequest", "lootProposal", "memoryDelta", "validationNotes"]
 };
 
+export const SEED_SCHEMA = {
+  type: "object",
+  properties: {
+    title: {
+      type: "string",
+      description: "A compact Spanish campaign title."
+    },
+    seed: {
+      type: "string",
+      description: "A compact Spanish campaign seed, 2-4 sentences, ready to paste into setup."
+    }
+  },
+  required: ["title", "seed"]
+};
+
+export const CAMPAIGN_MAP_SCHEMA = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    premise: { type: "string" },
+    campaignArc: { type: "string" },
+    turnPlan: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          turn: { type: "number" },
+          beat: { type: "string" },
+          challengeType: { type: "string", enum: ["combat", "explore", "social", "ritual", "boss"] },
+          difficultyBand: { type: "string", enum: ["easy", "normal", "hard", "boss", "mythic"] },
+          primaryStat: { type: "string", enum: ["Fuerza", "Inteligencia", "Carisma", "Magnetismo"] },
+          ritualId: { type: "string" },
+          ritualTitle: { type: "string" },
+          enemyBrief: { type: "string" },
+          rewardHint: { type: "string" }
+        },
+        required: ["turn", "beat", "challengeType", "difficultyBand", "primaryStat", "ritualId", "ritualTitle", "enemyBrief", "rewardHint"]
+      }
+    },
+    antagonistThread: { type: "string" },
+    vanaheimPressure: {
+      type: "array",
+      items: { type: "string" }
+    },
+    ritualNotes: { type: "string" }
+  },
+  required: ["title", "premise", "campaignArc", "turnPlan", "antagonistThread", "vanaheimPressure", "ritualNotes"]
+};
+
 export function buildSystemInstruction() {
   return [
     bridgecruxFiles["universal_system.md"],
     "",
-    bridgecruxFiles["assistants.md"],
-    "",
-    "Return valid JSON matching the provided schema. The visibleTurnText must include RESOLUCION, ESCENA, ESTADO TACTICO, OUT-GAME, ACCIONES POSIBLES, and MECANICA. Keep prose compact and tactical. OUT-GAME must be diegetic: a seal, key, offering, training, resonance, pact, wound, proof, or fuel inside the fiction. Always provide actionOptions with 2-3 concrete choices for Juanete and 2-3 for Ironmole; these become game buttons. Always provide ritualRequest when challengeSignal.requiresOutGame is true. If challengeSignal.challengeType is combat or boss, include a combatRequest object with title, objective, and enemyHint; the code will create the encounter mechanics. Do not write administrative setup instructions. Do not decide exact DCs. Do not complete out-game rituals for the players."
+    "Return valid JSON matching the provided schema. visibleTurnText is player-facing GM narration, not a debug report: write compact Spanish prose that naturally includes resolution, scene, tactical situation, and what is at stake, but do not need section headings. Always provide actionOptions with 2-3 concrete choices for Juanete and 2-3 for Ironmole; these become game buttons. Only combat or boss turns require ritualRequest; explore/social turns should set requiresOutGame false and ritualSize none. If challengeSignal.challengeType is combat or boss, include combatRequest with title, objective, enemyHint, and enemies with HP/stat hints. If the compact state contains a campaignMap entry for this turn, follow its beat, challenge type, enemy brief, and ritual title exactly. Do not invent ritual names when a mapped ritual is present. Do not write administrative setup instructions. Do not decide exact DCs. Do not complete out-game rituals for the players."
   ].join("\n");
 }
 
@@ -160,6 +230,7 @@ export function compactStateForPrompt(state, campaign, playerActions = "") {
       combatWeight: campaign.combatWeight,
       seed: campaign.seed,
       actMap: campaign.actMap,
+      campaignMap: campaign.campaignMap || null,
       currentTurnDraft: campaign.currentTurnDraft ? {
         turnNumber: campaign.currentTurnDraft.turnNumber,
         visibleTurnText: campaign.currentTurnDraft.visibleTurnText,
@@ -173,6 +244,7 @@ export function compactStateForPrompt(state, campaign, playerActions = "") {
     vanaheim: state.characters.vanaheim,
     activeEncounter: campaign?.activeEncounter || null,
     activeOutGameMission: campaign?.activeOutGameMission || null,
+    plannedTurn: campaign?.campaignMap?.turnPlan?.find((item) => Number(item.turn) === Number(campaign.turnNumber)) || null,
     recentTurnsSummary: recentTurns,
     lastPlayerActions: playerActions,
     mechanicalResults: campaign?.mechanicalResults || {},
@@ -186,9 +258,6 @@ export function buildPromptBundle(state, campaign, playerActions = "") {
     "SYSTEM FILE: universal_system.md",
     bridgecruxFiles["universal_system.md"],
     "",
-    "ROUTER FILE: assistants.md",
-    bridgecruxFiles["assistants.md"],
-    "",
     "OUTPUT CONTRACT: output_contracts.md",
     bridgecruxFiles["output_contracts.md"],
     "",
@@ -196,6 +265,6 @@ export function buildPromptBundle(state, campaign, playerActions = "") {
     JSON.stringify(compact, null, 2),
     "",
     "GM STYLE CONTRACT",
-    "Use compact Spanish prose. Keep action above ornament. Include the sections RESOLUCION, ESCENA, ESTADO TACTICO, OUT-GAME, ACCIONES POSIBLES, and MECANICA inside visibleTurnText. For ACCIONES POSIBLES and actionOptions, write distinct actionable options for Juanete and Ironmole; actionOptions are primary UI buttons, not suggestions hidden in prose. OUT-GAME must be diegetic: a seal, key, offering, training, resonance, pact, wound, proof, or fuel inside the fiction. If challengeSignal.requiresOutGame is true, ritualRequest must describe the ritual proof clearly enough to render as a checkbox gate. If this turn is combat or boss, set challengeSignal.challengeType accordingly and include combatRequest; do not ask the player to manually open combat. Do not write administrative setup instructions. Do not decide exact DCs. Do not complete out-game rituals for the players. If this is opening_gm_turn, start the campaign directly with the first playable scene; do not ask setup questions. If recentTurnsSummary contains turns, continue from those events and the lastPlayerActions; do not restart the campaign or reintroduce the opening situation."
+    "Use compact Spanish prose. Keep action above ornament. visibleTurnText should read like a GM talking to players, not like an API checklist. Put tactical state and stakes inside the narration. actionOptions are the primary UI buttons, so provide them clearly for both players. Follow plannedTurn from the campaign map when present. Explore/social turns ask for rolls but do not require out-game rituals. Combat/boss turns require the mapped library ritual and combatRequest with enemy HP hints; do not ask the player to manually open combat. Do not decide exact DCs. Do not complete out-game rituals for the players. If this is opening_gm_turn, start the campaign directly with the first playable scene. If recentTurnsSummary contains turns, continue from those events and the lastPlayerActions; do not restart the campaign."
   ].join("\n");
 }

@@ -1,12 +1,14 @@
 import { createInitialState, getActiveCampaign, getActiveEpicurogotchi, SPHERES, CLASS_NAMES } from "./state.js";
 import { loadState, saveState, resetStoredState } from "./storage.js";
-import { createCampaign, openEncounter, completeActiveRitual, registerScore, commitTurn, validateGmOutput, setCurrentTurnDraft } from "./campaign.js";
+import { createCampaign, completeActiveRitual, registerScore, commitTurn, validateGmOutput, setCurrentTurnDraft } from "./campaign.js";
 import { buildPromptBundle, bridgecruxFiles } from "./prompts.js";
 import { addRitual, deleteRitual, ritualStats } from "./rituals.js";
 import { addDiscovery, levelUp, setPetImageFromFile } from "./epicurogotchi.js";
 import { exportBundle, importBundle } from "./importExport.js";
-import { CLASS_TABLE, modifierFor, scoreFromTimingPercent } from "./rules.js";
+import { CLASS_TABLE, modifierFor, rollD20, scoreFromTimingPercent, targetForDifficulty } from "./rules.js";
 import { callGemini, GEMINI_MODEL_TIERS, GEMINI_MODES } from "./llmClient.js";
+import { routeForTier } from "./llmConfig.js";
+import { CAMPAIGN_MAP_SCHEMA, SEED_SCHEMA } from "./prompts.js";
 
 let state = loadState();
 let ui = {
@@ -18,12 +20,18 @@ let ui = {
   playerActions: "",
   validation: null,
   llmBusy: false,
+  seedBusy: false,
+  mapBusy: false,
   llmError: "",
   advancedOpen: false,
+  setupTitle: "",
+  setupSeed: "",
   selectedActions: {},
   customActions: {},
   ritualComplete: false,
   ritualProof: "",
+  rolls: {},
+  bonusScore: null,
   timing: {
     active: false,
     startedAt: 0,
@@ -77,6 +85,10 @@ function resetTurnInputs() {
   ui.customActions = {};
   ui.ritualComplete = false;
   ui.ritualProof = "";
+  ui.rolls = {};
+  ui.bonusScore = null;
+  ui.timing.active = false;
+  if (ui.timing.raf) window.cancelAnimationFrame(ui.timing.raf);
 }
 
 function render() {
@@ -335,7 +347,7 @@ function renderSetup(campaign) {
           <div class="panel-body form-grid">
             <div class="field full">
               <label for="title">Campaign title</label>
-              <input id="title" name="title" value="${escapeHtml(campaign?.title || "The First Totuma")}" maxlength="80">
+              <input id="title" name="title" value="${escapeHtml(ui.setupTitle || campaign?.title || "The First Totuma")}" maxlength="80">
             </div>
             <div class="field">
               <label for="mode">Campaign type</label>
@@ -363,10 +375,24 @@ function renderSetup(campaign) {
             </div>
             <div class="field full">
               <label for="seed">Campaign seed</label>
-              <textarea id="seed" name="seed" placeholder="Image, relic, mood, crossover, problem, or desire to test.">${escapeHtml(campaign?.seed || "")}</textarea>
+              <textarea id="seed" name="seed" placeholder="Image, relic, mood, crossover, problem, or desire to test.">${escapeHtml(ui.setupSeed || campaign?.seed || "")}</textarea>
             </div>
             <div class="field full">
-              <button class="btn" type="submit">${icon("hammer")} Create / Replace Active Campaign</button>
+              <button class="btn secondary" type="button" data-action="random-seed" ${ui.seedBusy ? "disabled" : ""}>${icon("shuffle")} ${ui.seedBusy ? "Generando..." : "Generar semilla"}</button>
+            </div>
+            <div class="field full ritual-picker">
+              <label>Mandatory campaign rituals</label>
+              <div class="ritual-check-grid">
+                ${state.ritualPools.map((ritual) => `
+                  <label class="mini-check">
+                    <input type="checkbox" name="mandatoryRitualIds" value="${escapeHtml(ritual.id)}" ${(campaign?.mandatoryRitualIds || []).includes(ritual.id) ? "checked" : ""}>
+                    <span>${escapeHtml(ritual.title)} <small>${escapeHtml(ritual.size)} / ${escapeHtml(ritual.sphere)}</small></span>
+                  </label>
+                `).join("")}
+              </div>
+            </div>
+            <div class="field full">
+              <button class="btn" type="submit" ${ui.mapBusy ? "disabled" : ""}>${icon("hammer")} ${ui.mapBusy ? "Creando mapa..." : "Create / Replace Active Campaign"}</button>
             </div>
           </div>
         </form>
@@ -422,7 +448,7 @@ function renderPlay(campaign) {
         </div>
         <aside class="stack game-side">
           ${renderGameStatus(campaign)}
-          ${renderCombatPanel(campaign)}
+          ${renderInteractionPanel(campaign)}
           ${renderAdvancedGmPanel(campaign)}
           ${renderTurnLog(campaign)}
         </aside>
@@ -507,7 +533,7 @@ function renderCurrentScene(campaign, currentDraft) {
       </div>
     `;
   }
-  const sections = splitGmScene(currentDraft.visibleTurnText);
+  const sceneText = cleanGmNarration(currentDraft.visibleTurnText);
   return `
     <article class="panel scene-panel">
       <div class="panel-body">
@@ -518,14 +544,7 @@ function renderCurrentScene(campaign, currentDraft) {
           </div>
           <span class="pill hot">${escapeHtml(currentDraft.challengeSignal?.challengeType || "scene")}</span>
         </div>
-        <div class="scene-scroll">
-          ${sections.map((section) => `
-            <section class="scene-section ${section.key === "acciones posibles" ? "is-muted" : ""}">
-              <span class="scene-section-label">${escapeHtml(section.label)}</span>
-              <p>${escapeHtml(section.text)}</p>
-            </section>
-          `).join("")}
-        </div>
+        <p class="scene-text">${escapeHtml(sceneText)}</p>
       </div>
     </article>
   `;
@@ -538,7 +557,8 @@ function renderPlayerTurnPanel(campaign) {
   const mission = campaign.activeOutGameMission;
   const ritualRequired = Boolean(mission && mission.status === "required");
   const ritualDone = !ritualRequired || mission.completed || ui.ritualComplete;
-  const resolveDisabled = disabled || !ritualDone;
+  const rollGate = getTurnRollGate(campaign);
+  const resolveDisabled = disabled || !ritualDone || !rollGate.ok;
   return `
     <div class="panel">
       <div class="panel-body">
@@ -566,6 +586,7 @@ function renderPlayerTurnPanel(campaign) {
             </div>
           </div>
         </details>
+        ${!disabled && !rollGate.ok ? `<div class="status-note warn" style="margin-top: var(--space-4);">${escapeHtml(rollGate.reason)}</div>` : ""}
         ${ui.llmError ? `<div class="status-note error" style="margin-top: var(--space-4);">${escapeHtml(ui.llmError)}</div>` : ""}
         <div class="cluster" style="margin-top: var(--space-4);">
           <button class="btn btn-large" data-action="resolve-game-turn" ${resolveDisabled ? "disabled" : ""}>${icon("sparkles")} ${ui.llmBusy ? "Resolving..." : "Resolve Turn"}</button>
@@ -593,6 +614,13 @@ function splitGmScene(text) {
       text: source.slice(start, end).replace(/^[:\s]+/, "").trim()
     };
   }).filter((section) => section.text);
+}
+
+function cleanGmNarration(text) {
+  const source = String(text || "").trim();
+  const sections = splitGmScene(source).filter((section) => section.key !== "acciones posibles");
+  if (!sections.length || sections[0]?.key === "scene") return source || "The GM has not spoken yet.";
+  return sections.map((section) => section.text).filter(Boolean).join("\n\n");
 }
 
 function getActionOptions(draft) {
@@ -691,25 +719,52 @@ function renderGameStatus(campaign) {
           ${metric("Turn", `${campaign.turnNumber}/${campaign.maxTurns}`)}
           ${metric("Ritual", mission ? (mission.completed ? "done" : "open") : "none")}
           ${metric("Combat", campaign.activeEncounter ? "active" : "none")}
+          ${metric("Map", campaign.campaignMapStatus || (campaign.campaignMap ? "ready" : "none"))}
           ${metric("GM", ui.llmBusy ? "thinking" : "ready")}
+        </div>
+        <div class="character-state-grid">
+          ${renderCharacterState("juanete", "Juanete")}
+          ${renderCharacterState("ironmole", "Ironmole")}
         </div>
       </div>
     </div>
   `;
 }
 
-function renderCombatPanel(campaign) {
+function renderCharacterState(actor, label) {
+  const character = state.characters[actor];
+  if (!character) return "";
+  const stats = Object.entries(character.stats || {}).map(([stat, value]) => `<span class="pill">${escapeHtml(stat)} ${value} (${modifierFor(value) >= 0 ? "+" : ""}${modifierFor(value)})</span>`).join("");
+  const abilities = character.abilities?.length ? character.abilities.join(", ") : "base class kit";
+  const equipment = character.items?.length ? character.items.join(", ") : "starter equipment";
+  return `
+    <div class="character-state">
+      <div class="split">
+        <h4>${escapeHtml(label)}</h4>
+        <span class="pill hot">HP ${character.hp}/${character.maxHp}</span>
+      </div>
+      <p class="meta">${escapeHtml(character.className)} - ${escapeHtml(character.resource)} / ${escapeHtml(character.tendency)}</p>
+      <div class="pill-row">${stats}</div>
+      <p class="meta"><strong>Abilities:</strong> ${escapeHtml(abilities)}</p>
+      <p class="meta"><strong>Equipment:</strong> ${escapeHtml(equipment)}</p>
+    </div>
+  `;
+}
+
+function renderInteractionPanel(campaign) {
   const encounter = campaign.activeEncounter;
-  const mission = campaign.activeOutGameMission;
+  const challenge = campaign.currentTurnDraft?.challengeSignal || {};
+  const target = encounter?.target || targetForDifficulty(challenge.difficultyBand || "normal", campaign.turnNumber);
+  const turnType = challenge.challengeType || "scene";
   return `
     <div class="panel">
       <div class="panel-body">
         <div class="split">
           <div>
-            <span class="eyebrow">Combat panel</span>
-            <h3 class="panel-title">${encounter ? escapeHtml(encounter.title) : "No active combat"}</h3>
+            <span class="eyebrow">Interaction panel</span>
+            <h3 class="panel-title">${encounter ? escapeHtml(encounter.title) : "Roll the Scene"}</h3>
           </div>
-          ${encounter ? `<span class="pill hot">Target ${encounter.target}</span>` : ""}
+          <span class="pill hot">Target ${target}</span>
         </div>
         ${encounter ? `
           <p class="item-copy">${escapeHtml(encounter.objective)}</p>
@@ -724,47 +779,141 @@ function renderCombatPanel(campaign) {
               </div>
             `).join("")}
           </div>
-          ${mission ? `
-            <div class="status-note warn" style="margin-top: var(--space-4);">
-              <strong>${escapeHtml(mission.ritual.title)}</strong>
-              <p class="meta">${escapeHtml(mission.ritual.description)}</p>
-              <div class="pill-row">
-                <span class="pill hot">${mission.completed ? "completed" : "required"}</span>
-                <span class="pill">${mission.ritual.size}</span>
-                <span class="pill cool">${mission.ritual.sphere}</span>
-              </div>
-            </div>
-            <div class="field" style="margin-top: var(--space-4);">
-              <label for="proofNote">Proof note</label>
-              <textarea id="proofNote" data-input="proof-note" placeholder="What happened out-game?">${escapeHtml(mission.proofNote || "")}</textarea>
-            </div>
-            <button class="btn secondary" data-action="complete-ritual" ${mission.completed ? "disabled" : ""}>${icon("badge-check")} Complete Ritual</button>
-          ` : ""}
-          ${renderTimingGame(encounter)}
         ` : `
-          <p class="item-copy">Use this when the GM scene turns into a fight. The code selects the required ritual, target, and score challenge.</p>
-          <div class="cluster" style="margin-top: var(--space-4);">
-            <button class="btn secondary" data-action="open-skirmish">${icon("swords")} Skirmish</button>
-            <button class="btn secondary" data-action="open-boss">${icon("skull")} Boss Gate</button>
-          </div>
+          <p class="item-copy">${campaign.currentTurnDraft ? `This ${escapeHtml(turnType)} turn resolves through the action buttons and d20 rolls. Combat rituals appear only when the GM has opened a fight.` : "Generate the GM scene before rolling."}</p>
         `}
+        ${renderRollCards(campaign)}
+        ${encounter ? renderTimingGame(encounter) : ""}
       </div>
     </div>
   `;
+}
+
+function renderRollCards(campaign) {
+  if (!campaign.currentTurnDraft) return "";
+  return `
+    <div class="roll-grid">
+      ${renderRollCard(campaign, "juanete", "Juanete")}
+      ${renderRollCard(campaign, "ironmole", "Ironmole")}
+    </div>
+  `;
+}
+
+function renderRollCard(campaign, actor, label) {
+  const action = getActorAction(campaign, actor);
+  const roll = ui.rolls[actor];
+  const needsDamage = campaign.activeEncounter && roll?.hit && !roll.damage && roll.total >= roll.target;
+  const stat = action.stat || campaign.currentTurnDraft?.challengeSignal?.primaryStat || "Fuerza";
+  const character = state.characters[actor];
+  const statValue = character?.stats?.[stat] ?? 10;
+  const modifier = modifierFor(statValue);
+  const target = campaign.activeEncounter?.target || targetForDifficulty(campaign.currentTurnDraft?.challengeSignal?.difficultyBand || "normal", campaign.turnNumber);
+  return `
+    <div class="roll-card ${roll ? "has-roll" : ""}">
+      <div>
+        <span class="eyebrow">${escapeHtml(label)}</span>
+        <h4>${escapeHtml(action.label || "Choose an action first")}</h4>
+        <p class="meta">${escapeHtml(stat)} ${statValue} (${modifier >= 0 ? "+" : ""}${modifier}) vs ${target}</p>
+      </div>
+      ${roll ? `
+        <div class="roll-result">
+          <strong>${roll.total}</strong>
+          <span>d20 ${roll.d20} ${roll.modifier >= 0 ? "+" : ""}${roll.modifier}</span>
+          <small>${escapeHtml(roll.outcome)}</small>
+          ${roll.damage ? `<small>damage ${roll.damage.total}</small>` : ""}
+        </div>
+      ` : ""}
+      <button class="btn secondary dice-button" data-action="roll-action" data-actor="${actor}" ${action.label && (!roll || needsDamage) ? "" : "disabled"}>${icon("dice-5")} ${needsDamage ? "Roll damage" : roll ? "Rolled" : "Roll hit"}</button>
+    </div>
+  `;
+}
+
+function getActorAction(campaign, actor) {
+  const custom = (ui.customActions[actor] || "").trim();
+  const selected = ui.selectedActions[actor] || "";
+  const options = getActionOptions(campaign.currentTurnDraft || {})[actor] || [];
+  const option = options.find((item) => item.label === selected);
+  const label = custom || option?.label || selected || "";
+  return {
+    label,
+    stat: normalizeStatName(option?.stat || campaign.currentTurnDraft?.challengeSignal?.primaryStat || "Fuerza"),
+    intent: custom ? "Custom table action" : option?.intent || label
+  };
+}
+
+function normalizeStatName(stat) {
+  const wanted = normalizeText(stat);
+  const candidate = ["Fuerza", "Inteligencia", "Carisma", "Magnetismo"].find((item) => normalizeText(item) === wanted);
+  return candidate || "Fuerza";
+}
+
+function getTurnRollGate(campaign) {
+  if (!campaign?.currentTurnDraft) return { ok: false, reason: "Generate the GM scene before choosing actions." };
+  const missingActions = ["juanete", "ironmole"].filter((actor) => !getActorAction(campaign, actor).label);
+  if (missingActions.length) return { ok: false, reason: "Choose one action for Juanete and one action for Ironmole." };
+  const missingRolls = ["juanete", "ironmole"].filter((actor) => !ui.rolls[actor]);
+  if (missingRolls.length) return { ok: false, reason: "Roll a d20 for each chosen character action." };
+  if (campaign.activeEncounter) {
+    const missingDamage = ["juanete", "ironmole"].filter((actor) => ui.rolls[actor]?.hit && ui.rolls[actor].total >= ui.rolls[actor].target && !ui.rolls[actor].damage);
+    if (missingDamage.length) return { ok: false, reason: "Roll damage for successful combat hits." };
+  }
+  return { ok: true, reason: "" };
+}
+
+function rollActorAction(campaign, actor) {
+  const action = getActorAction(campaign, actor);
+  if (!action.label) {
+    showToast("Choose an action before rolling");
+    return;
+  }
+  const character = state.characters[actor];
+  const stat = action.stat || campaign.currentTurnDraft?.challengeSignal?.primaryStat || "Fuerza";
+  const statValue = character?.stats?.[stat] ?? 10;
+  const modifier = modifierFor(statValue);
+  const target = campaign.activeEncounter?.target || targetForDifficulty(campaign.currentTurnDraft?.challengeSignal?.difficultyBand || "normal", campaign.turnNumber);
+  if (campaign.activeEncounter && ui.rolls[actor]?.hit && !ui.rolls[actor].damage) {
+    const damageDie = Math.floor(Math.random() * 8) + 1;
+    const damageTotal = Math.max(1, damageDie + Math.max(0, modifier));
+    const enemy = campaign.activeEncounter.enemies.find((item) => item.hp > 0);
+    if (enemy) {
+      enemy.hp = Math.max(0, enemy.hp - damageTotal);
+      enemy.condition = enemy.hp <= 0 ? "defeated" : "wounded";
+    }
+    ui.rolls[actor].damage = { die: damageDie, modifier: Math.max(0, modifier), total: damageTotal, targetEnemy: enemy?.name || "" };
+    saveState(state);
+    render();
+    return;
+  }
+  const d20 = rollD20();
+  const total = d20 + modifier;
+  const outcome = total >= target + 5 ? "strong success" : total >= target ? "success" : total >= target - 3 ? "mixed cost" : "failure with consequence";
+  ui.rolls[actor] = {
+    actor,
+    action: action.label,
+    stat,
+    statValue,
+    modifier,
+    d20,
+    total,
+    target,
+    outcome,
+    hit: Boolean(campaign.activeEncounter)
+  };
+  render();
 }
 
 function renderTimingGame(encounter) {
   const score = encounter.minigame?.score;
   return `
     <div class="timing-game" style="margin-top: var(--space-4);">
-      <span class="eyebrow">Score challenge</span>
+      <span class="eyebrow">Optional bonus</span>
       <div class="timing-track">
         <div class="timing-target"></div>
         <div class="timing-marker" style="--marker-x:${ui.timing.marker}%"></div>
       </div>
       <div class="cluster">
-        <button class="btn" data-action="${ui.timing.active ? "strike-score" : "start-score"}">${icon(ui.timing.active ? "crosshair" : "play")} ${ui.timing.active ? "Strike" : "Start"}</button>
-        ${score ? `<span class="pill hot">Score ${score}: ${escapeHtml(encounter.minigame.resultLabel)}</span>` : `<span class="meta">Hit the center; the app parses the score.</span>`}
+        <button class="btn secondary" data-action="${ui.timing.active ? "strike-score" : "start-score"}">${icon(ui.timing.active ? "crosshair" : "sparkle")} ${ui.timing.active ? "Take bonus" : "Try bonus"}</button>
+        ${score ? `<span class="pill hot">Bonus ${score}: ${escapeHtml(encounter.minigame.resultLabel)}</span>` : `<span class="meta">Optional; d20 rolls are the main resolution.</span>`}
       </div>
     </div>
   `;
@@ -1037,13 +1186,21 @@ function renderMemory() {
 }
 
 function renderBridgecrux() {
+  const runs = Array.isArray(state.llmRuns) ? state.llmRuns.slice(-8).reverse() : [];
   return `
     <section class="screen">
       <div class="screen-header">
         <div>
           <span class="eyebrow">Bridgecrux / LLM OS</span>
           <h2 class="screen-title">Prompt Spine</h2>
-          <p class="screen-copy">These are the local task contracts used by prompt assembly. They are also mirrored in the memory workspace.</p>
+          <p class="screen-copy">Prompt contracts plus the latest GM input, output, route, and validation results. API keys are never stored here.</p>
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom: var(--space-6);">
+        <div class="panel-body">
+          <span class="eyebrow">Latest LLM runs</span>
+          <h3 class="panel-title">Input / Output / Config</h3>
+          ${runs.length ? `<div class="llm-run-list">${runs.map(renderLlmRun).join("")}</div>` : `<div class="empty-state">No LLM runs recorded yet.</div>`}
         </div>
       </div>
       <div class="grid two">
@@ -1058,6 +1215,62 @@ function renderBridgecrux() {
       </div>
     </section>
   `;
+}
+
+function renderLlmRun(run) {
+  return `
+    <details class="llm-run">
+      <summary>
+        <span>${escapeHtml(run.createdAt || "")}</span>
+        <strong>${escapeHtml(run.status || "unknown")} / ${escapeHtml(run.model || run.settings?.modelTier || "model")}</strong>
+      </summary>
+      <div class="llm-run-body">
+        <div class="pill-row">
+          <span class="pill">${escapeHtml(run.settings?.modelTier || "")}</span>
+          <span class="pill">${escapeHtml(run.settings?.llmMode || "")}</span>
+          <span class="pill">thinking ${escapeHtml(run.usedConfig?.thinkingLevel || run.usedConfig?.thinkingBudget || run.settings?.thinkingLevel || run.settings?.thinkingBudget || "")}</span>
+          <span class="pill">temp ${escapeHtml(run.settings?.temperature ?? "")}</span>
+          <span class="pill">out ${escapeHtml(run.usedConfig?.maxOutputTokens ?? run.settings?.maxOutputTokens ?? "")}</span>
+          ${run.fallbackUsed ? `<span class="pill hot">fallback used</span>` : ""}
+        </div>
+        ${run.fallbackReason ? `<div class="status-note warn">${escapeHtml(run.fallbackReason)}</div>` : ""}
+        ${run.error ? `<div class="status-note error">${escapeHtml(run.error)}</div>` : ""}
+        ${run.validation ? `<div class="status-note ${run.validation.ok ? "" : "error"}">Validation: ${run.validation.ok ? "ok" : escapeHtml(run.validation.issues?.join(" ") || "failed")}</div>` : ""}
+        <div class="grid two">
+          <div>
+            <span class="eyebrow">Prompt input</span>
+            <pre class="codebox">${escapeHtml(run.prompt || "")}</pre>
+          </div>
+          <div>
+            <span class="eyebrow">Model output</span>
+            <pre class="codebox">${escapeHtml(run.output || "")}</pre>
+          </div>
+        </div>
+      </div>
+    </details>
+  `;
+}
+
+function settingsForRoute(tier) {
+  const route = routeForTier(tier);
+  return {
+    ...state.settings,
+    ...route,
+    modelTier: tier,
+    llmMode: state.settings.llmMode || "generate-content",
+    llmEndpoint: state.settings.llmEndpoint || "http://127.0.0.1:8787/api/gemini"
+  };
+}
+
+function normalizeStoredSettings() {
+  const route = routeForTier(state.settings.modelTier || "medium");
+  state.settings = {
+    ...state.settings,
+    thinkingLevel: route.thinkingLevel || state.settings.thinkingLevel || "high",
+    thinkingBudget: route.thinkingBudget ?? state.settings.thinkingBudget ?? 16000,
+    temperature: route.temperature ?? 0.85,
+    maxOutputTokens: route.maxOutputTokens ?? 20000
+  };
 }
 
 function bindEvents() {
@@ -1084,27 +1297,28 @@ function bindEvents() {
 
   document.querySelector("[data-form='campaign-setup']")?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    data.mandatoryRitualIds = formData.getAll("mandatoryRitualIds");
     const campaign = createCampaign(state, data);
     state.settings.llmEndpoint = state.settings.llmEndpoint || "http://127.0.0.1:8787/api/gemini";
     resetTurnInputs();
     saveState(state);
     ui.view = "play";
-    showToast("Campaign forged. Open Piccolo's sheet first.");
+    showToast("Campaign forged. Building heavy campaign map...");
+    await generateCampaignMap(campaign);
   });
 
-  document.querySelector("[data-action='open-skirmish']")?.addEventListener("click", () => {
-    const campaign = getActiveCampaign(state);
-    openEncounter(state, campaign, { scale: "skirmish" });
-    saveState(state);
-    showToast("Skirmish opened with required ritual");
+  document.querySelector("[data-action='random-seed']")?.addEventListener("click", async () => {
+    await generateRandomSeed();
   });
 
-  document.querySelector("[data-action='open-boss']")?.addEventListener("click", () => {
-    const campaign = getActiveCampaign(state);
-    openEncounter(state, campaign, { scale: "boss", difficultyBand: "boss" });
-    saveState(state);
-    showToast("Boss gate opened with macro ritual");
+  document.querySelector("[name='seed']")?.addEventListener("input", (event) => {
+    ui.setupSeed = event.currentTarget.value;
+  });
+
+  document.querySelector("[name='title']")?.addEventListener("input", (event) => {
+    ui.setupTitle = event.currentTarget.value;
   });
 
   document.querySelector("[data-action='complete-ritual']")?.addEventListener("click", () => {
@@ -1162,8 +1376,16 @@ function bindEvents() {
 
   document.querySelectorAll("[data-action-option]").forEach((button) => {
     button.addEventListener("click", () => {
-      ui.selectedActions[button.dataset.actionOption] = button.dataset.optionLabel || "";
+      const actor = button.dataset.actionOption;
+      ui.selectedActions[actor] = button.dataset.optionLabel || "";
+      delete ui.rolls[actor];
       render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='roll-action']").forEach((button) => {
+    button.addEventListener("click", () => {
+      rollActorAction(getActiveCampaign(state), button.dataset.actor);
     });
   });
 
@@ -1179,10 +1401,12 @@ function bindEvents() {
 
   document.querySelector("[data-input='juanete-action']")?.addEventListener("input", (event) => {
     ui.customActions.juanete = event.currentTarget.value;
+    delete ui.rolls.juanete;
   });
 
   document.querySelector("[data-input='ironmole-action']")?.addEventListener("input", (event) => {
     ui.customActions.ironmole = event.currentTarget.value;
+    delete ui.rolls.ironmole;
   });
 
   document.querySelector("[data-input='table-notes']")?.addEventListener("input", (event) => {
@@ -1226,8 +1450,9 @@ function bindEvents() {
       });
       ui.gmOutput = result.text;
       ui.validation = validateGmOutput(result.text);
+      recordLlmRun({ campaign, prompt: ui.promptOutput, result, validation: ui.validation, settings: state.settings });
       if (ui.validation.ok) {
-        setCurrentTurnDraft(campaign, ui.validation, result.text);
+        setCurrentTurnDraft(state, campaign, ui.validation, result.text);
         resetTurnInputs();
         saveState(state);
       }
@@ -1235,6 +1460,7 @@ function bindEvents() {
       showToast(`Gemini returned ${result.model}`);
     } catch (error) {
       ui.llmError = error.message || "Gemini request failed.";
+      recordLlmRun({ campaign, prompt: ui.promptOutput, error, settings: state.settings });
       showToast("Gemini request failed");
     } finally {
       ui.llmBusy = false;
@@ -1383,6 +1609,212 @@ function collectLlmSettings() {
   state.settings.llmEndpoint = document.querySelector("[data-input='llm-endpoint']")?.value?.trim() || "";
 }
 
+function safeLlmSettings(settings = state.settings) {
+  return {
+    modelTier: settings.modelTier,
+    llmMode: settings.llmMode,
+    thinkingLevel: settings.thinkingLevel,
+    thinkingBudget: settings.thinkingBudget,
+    temperature: settings.temperature,
+    maxOutputTokens: settings.maxOutputTokens,
+    llmEndpoint: settings.llmEndpoint
+  };
+}
+
+function recordLlmRun({ campaign, prompt, result, validation, error, settings }) {
+  if (!Array.isArray(state.llmRuns)) state.llmRuns = [];
+  state.llmRuns.push({
+    id: `llm_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    campaignId: campaign?.id || null,
+    turnNumber: campaign?.turnNumber ?? null,
+    createdAt: new Date().toISOString(),
+    status: error ? "error" : validation?.ok ? "ok" : "repair",
+    model: result?.payload?.modelUsed || result?.model || "",
+    fallbackUsed: Boolean(result?.payload?.fallbackUsed),
+    fallbackReason: result?.payload?.fallbackReason || "",
+    usedConfig: result?.payload?.usedConfig || null,
+    settings: safeLlmSettings(settings),
+    prompt,
+    output: result?.text || "",
+    validation: validation ? { ok: validation.ok, issues: validation.issues || [] } : null,
+    error: error?.message || error || ""
+  });
+  state.llmRuns = state.llmRuns.slice(-20);
+  saveState(state);
+}
+
+async function generateRandomSeed() {
+  if (ui.seedBusy) return;
+  const settings = settingsForRoute("small");
+  const currentForm = document.querySelector("[data-form='campaign-setup']");
+  const formData = currentForm ? Object.fromEntries(new FormData(currentForm).entries()) : {};
+  const prompt = [
+    bridgecruxFiles["universal_system.md"],
+    "",
+    "Genera una semilla de campana para Totumas & Aventuras.",
+    "Debe estar en espanol, con titulo, tono raro, aventurero, tactico y jugable.",
+    "No escribas ingles. No expliques el formato. Devuelve JSON.",
+    "",
+    "Contexto de setup:",
+    JSON.stringify({
+      mode: formData.mode || "canon",
+      maxTurns: formData.maxTurns || "20",
+      intensity: formData.intensity || "normal",
+      combatWeight: formData.combatWeight || "80",
+      juaneteClass: formData.juaneteClass || "Bardo",
+      ironmoleClass: formData.ironmoleClass || "Artificiero"
+    }, null, 2)
+  ].join("\n");
+  ui.seedBusy = true;
+  render();
+  try {
+    const result = await callGemini({
+      prompt,
+      settings,
+      apiKey: window.sessionStorage.getItem("tya.gemini.apiKey") || "",
+      responseJsonSchema: SEED_SCHEMA,
+      systemInstruction: `${bridgecruxFiles["universal_system.md"]}\n\nEres un generador de semillas de campana en espanol para este juego narrativo-tactico. Responde solo JSON valido.`
+    });
+    const parsed = JSON.parse(result.text);
+    ui.setupSeed = parsed.seed || "";
+    ui.setupTitle = parsed.title || ui.setupTitle;
+    recordLlmRun({ campaign: getActiveCampaign(state), prompt, result, validation: { ok: Boolean(parsed.seed && parsed.title), issues: parsed.seed && parsed.title ? [] : ["Seed or title missing"] }, settings });
+    showToast("Semilla generada");
+  } catch (error) {
+    recordLlmRun({ campaign: getActiveCampaign(state), prompt, error, settings });
+    showToast(error.message || "No se pudo generar la semilla");
+  } finally {
+    ui.seedBusy = false;
+    render();
+  }
+}
+
+async function generateCampaignMap(campaign) {
+  if (!campaign || ui.mapBusy) return;
+  const settings = settingsForRoute("heavy");
+  const prompt = buildCampaignMapPrompt(campaign);
+  campaign.campaignMapStatus = "generating";
+  ui.mapBusy = true;
+  saveState(state);
+  render();
+  try {
+    const result = await callGemini({
+      prompt,
+      settings,
+      apiKey: window.sessionStorage.getItem("tya.gemini.apiKey") || "",
+      responseJsonSchema: CAMPAIGN_MAP_SCHEMA,
+      systemInstruction: "Eres el arquitecto heavy de Totumas & Aventuras. Crea mapas de campana completos en espanol. El codigo posee estadisticas, DCs, HP, rituales y turnos; tu salida debe planear ritmo, escenas, enemigos y rituales por combate usando solo rituales dados."
+    });
+    const parsed = JSON.parse(result.text);
+    campaign.campaignMap = normalizeCampaignMap(campaign, parsed);
+    campaign.campaignMapStatus = "ready";
+    state.memories["campaigns/map.json"] = JSON.stringify(campaign.campaignMap, null, 2);
+    recordLlmRun({ campaign, prompt, result, validation: { ok: true, issues: [] }, settings });
+    saveState(state);
+    showToast("Campaign map ready. Open Piccolo's sheet first.");
+  } catch (error) {
+    campaign.campaignMap = buildFallbackCampaignMap(campaign);
+    campaign.campaignMapStatus = "fallback";
+    state.memories["campaigns/map.json"] = JSON.stringify(campaign.campaignMap, null, 2);
+    recordLlmRun({ campaign, prompt, error, settings });
+    saveState(state);
+    showToast("Heavy map failed; fallback map created");
+  } finally {
+    ui.mapBusy = false;
+    render();
+  }
+}
+
+function buildCampaignMapPrompt(campaign) {
+  return [
+    bridgecruxFiles["universal_system.md"],
+    "",
+    "Crea el mapa completo de campana para Totumas & Aventuras.",
+    "Todo debe estar en espanol. No improvises rituales fuera de la biblioteca.",
+    "Cada turno debe tener un beat jugable. Solo los turnos combat o boss deben tener ritualId/ritualTitle.",
+    "Para explore/social/ritual sin combate usa ritualId y ritualTitle vacios.",
+    "Los enemigos deben venir en enemyBrief con cantidad, tipo, HP sugerido y rasgo tactico; el codigo derivara enemigos concretos.",
+    "Usa la semilla, clases, intensidad, peso de combate y cantidad de turnos.",
+    "",
+    JSON.stringify({
+      campaign: {
+        title: campaign.title,
+        mode: campaign.mode,
+        maxTurns: campaign.maxTurns,
+        intensity: campaign.intensity,
+        combatWeight: campaign.combatWeight,
+        seed: campaign.seed,
+        selectedClasses: campaign.selectedClasses,
+        actMap: campaign.actMap
+      },
+      pcs: {
+        juanete: state.characters.juanete,
+        ironmole: state.characters.ironmole
+      },
+      ritualLibrary: state.ritualPools.map((ritual) => ({
+        id: ritual.id,
+        title: ritual.title,
+        sphere: ritual.sphere,
+        size: ritual.size,
+        description: ritual.description
+      })),
+      mandatoryRitualIds: campaign.mandatoryRitualIds || []
+    }, null, 2)
+  ].join("\n");
+}
+
+function normalizeCampaignMap(campaign, map) {
+  const turns = Array.isArray(map.turnPlan) ? map.turnPlan : [];
+  const combatRituals = state.ritualPools.filter((ritual) => ritual.size === "micro");
+  const bossRituals = state.ritualPools.filter((ritual) => ritual.size === "macro");
+  const normalized = {
+    ...map,
+    turnPlan: Array.from({ length: campaign.maxTurns }, (_, index) => {
+      const turn = turns.find((item) => Number(item.turn) === index + 1) || {};
+      const challengeType = turn.challengeType || (index === campaign.maxTurns - 1 ? "boss" : (index % 4 === 1 ? "combat" : "explore"));
+      const needsRitual = ["combat", "boss"].includes(challengeType);
+      const validRitual = state.ritualPools.find((ritual) => ritual.id === turn.ritualId);
+      const fallbackPool = challengeType === "boss" ? bossRituals : combatRituals;
+      const fallbackRitual = fallbackPool[index % Math.max(1, fallbackPool.length)] || null;
+      const ritual = needsRitual ? (validRitual || fallbackRitual) : null;
+      return {
+        turn: index + 1,
+        beat: turn.beat || `Avance de Vanaheim ${index + 1}`,
+        challengeType,
+        difficultyBand: turn.difficultyBand || (challengeType === "boss" ? "boss" : "normal"),
+        primaryStat: normalizeStatName(turn.primaryStat || "Fuerza"),
+        ritualId: ritual?.id || "",
+        ritualTitle: ritual?.title || "",
+        enemyBrief: turn.enemyBrief || (needsRitual ? "Amenaza con 1-3 enemigos; HP sugerido 10-18; presion tactica clara." : ""),
+        rewardHint: turn.rewardHint || "pista, memoria, ventaja o loot menor"
+      };
+    })
+  };
+  const mandatory = (campaign.mandatoryRitualIds || [])
+    .map((id) => state.ritualPools.find((ritual) => ritual.id === id))
+    .filter(Boolean);
+  const ritualTurns = normalized.turnPlan.filter((turn) => ["combat", "boss"].includes(turn.challengeType));
+  mandatory.forEach((ritual, index) => {
+    const targetTurn = ritualTurns[index % Math.max(1, ritualTurns.length)];
+    if (!targetTurn) return;
+    targetTurn.ritualId = ritual.id;
+    targetTurn.ritualTitle = ritual.title;
+  });
+  return normalized;
+}
+
+function buildFallbackCampaignMap(campaign) {
+  return normalizeCampaignMap(campaign, {
+    title: campaign.title,
+    premise: campaign.seed || "Una primera expedicion hacia Vanaheim.",
+    campaignArc: "Entrada, presion, descubrimiento, combate, convergencia y cierre.",
+    turnPlan: [],
+    antagonistThread: "La friccion de Vanaheim prueba el vinculo de Juanete, Ironmole y Piccolo.",
+    vanaheimPressure: ["Din exige ternura bajo presion.", "Hagen exige hipotesis utiles.", "Segismundo exige presencia material.", "Elektra exige forma y deseo."],
+    ritualNotes: "Fallback local: rituales asignados desde la biblioteca segun combate."
+  });
+}
+
 function collectGameActions() {
   const juaneteCustom = document.querySelector("[data-input='juanete-action']")?.value?.trim() || ui.customActions.juanete || "";
   const ironmoleCustom = document.querySelector("[data-input='ironmole-action']")?.value?.trim() || ui.customActions.ironmole || "";
@@ -1392,6 +1824,9 @@ function collectGameActions() {
   return [
     juanete ? `Juanete: ${juanete}` : "",
     ironmole ? `Ironmole: ${ironmole}` : "",
+    ui.rolls.juanete ? `Juanete roll: d20 ${ui.rolls.juanete.d20} ${ui.rolls.juanete.modifier >= 0 ? "+" : ""}${ui.rolls.juanete.modifier} = ${ui.rolls.juanete.total} vs ${ui.rolls.juanete.target} (${ui.rolls.juanete.outcome})` : "",
+    ui.rolls.ironmole ? `Ironmole roll: d20 ${ui.rolls.ironmole.d20} ${ui.rolls.ironmole.modifier >= 0 ? "+" : ""}${ui.rolls.ironmole.modifier} = ${ui.rolls.ironmole.total} vs ${ui.rolls.ironmole.target} (${ui.rolls.ironmole.outcome})` : "",
+    ui.bonusScore ? `Optional bonus score: ${ui.bonusScore}` : "",
     notes ? `Table notes: ${notes}` : ""
   ].filter(Boolean).join("\n");
 }
@@ -1399,6 +1834,7 @@ function collectGameActions() {
 async function generateGmDraft(campaign, playerActions) {
   if (!campaign || ui.llmBusy) return;
   state.settings.llmEndpoint = state.settings.llmEndpoint || "http://127.0.0.1:8787/api/gemini";
+  const settings = settingsForRoute("medium");
   ui.llmBusy = true;
   ui.llmError = "";
   ui.playerActions = playerActions || "";
@@ -1408,23 +1844,25 @@ async function generateGmDraft(campaign, playerActions) {
   try {
     const result = await callGemini({
       prompt: ui.promptOutput,
-      settings: state.settings,
+      settings,
       apiKey: window.sessionStorage.getItem("tya.gemini.apiKey") || ""
     });
     const validation = validateGmOutput(result.text);
+    recordLlmRun({ campaign, prompt: ui.promptOutput, result, validation, settings });
     ui.validation = validation;
     ui.gmOutput = result.text;
     if (!validation.ok) {
       ui.llmError = `The GM response needs repair: ${validation.issues.join(" ")}`;
       return;
     }
-    setCurrentTurnDraft(campaign, validation, result.text);
+    setCurrentTurnDraft(state, campaign, validation, result.text);
     resetTurnInputs();
     ui.llmError = "";
     saveState(state);
     showToast(`Turn ${campaign.currentTurnDraft.turnNumber} is ready`);
   } catch (error) {
     ui.llmError = error.message || "Gemini request failed.";
+    recordLlmRun({ campaign, prompt: ui.promptOutput, error, settings });
     showToast("GM could not open the turn");
   } finally {
     ui.llmBusy = false;
@@ -1437,6 +1875,11 @@ async function resolveGameTurn(campaign) {
   const playerActions = collectGameActions();
   if (!playerActions) {
     showToast("Choose actions for Juanete or Ironmole first");
+    return;
+  }
+  const rollGate = getTurnRollGate(campaign);
+  if (!rollGate.ok) {
+    showToast(rollGate.reason);
     return;
   }
   if (campaign.activeOutGameMission?.status === "required" && !campaign.activeOutGameMission.completed) {
@@ -1452,7 +1895,31 @@ async function resolveGameTurn(campaign) {
     showToast("Choose at least one action button or custom action");
     return;
   }
+  if (campaign.activeEncounter?.enemies?.some((enemy) => enemy.hp > 0)) {
+    applyUnresolvedCombatConsequences(campaign);
+    campaign.currentTurnDraft.visibleTurnText = [
+      campaign.currentTurnDraft.visibleTurnText,
+      "",
+      "La escena sigue sin resolverse. La amenaza todavia esta en pie; Juanete e Ironmole necesitan otra maniobra antes de que el turno pueda avanzar."
+    ].join("\n");
+    campaign.mechanicalResults = {
+      ...campaign.mechanicalResults,
+      unresolved: true,
+      d20Rolls: { ...ui.rolls },
+      remainingEnemies: campaign.activeEncounter.enemies.map((enemy) => ({ name: enemy.name, hp: enemy.hp, maxHp: enemy.maxHp, condition: enemy.condition }))
+    };
+    ui.rolls = {};
+    saveState(state);
+    showToast(`Turn ${campaign.turnNumber}/${campaign.maxTurns} unresolved`);
+    render();
+    return;
+  }
   const draft = campaign.currentTurnDraft;
+  campaign.mechanicalResults = {
+    ...campaign.mechanicalResults,
+    d20Rolls: { ...ui.rolls },
+    optionalBonusScore: ui.bonusScore
+  };
   const committed = commitTurn(campaign, {
     playerActions,
     visibleTurnText: draft.visibleTurnText,
@@ -1468,6 +1935,19 @@ async function resolveGameTurn(campaign) {
   resetTurnInputs();
   saveState(state);
   await generateGmDraft(campaign, playerActions);
+}
+
+function applyUnresolvedCombatConsequences(campaign) {
+  const failures = Object.values(ui.rolls).filter((roll) => roll.total < roll.target);
+  const livingEnemies = campaign.activeEncounter?.enemies?.filter((enemy) => enemy.hp > 0) || [];
+  const damage = Math.max(1, livingEnemies.length + failures.length);
+  for (const actor of ["juanete", "ironmole"]) {
+    const character = state.characters[actor];
+    if (!character) continue;
+    const actorFailed = ui.rolls[actor]?.total < ui.rolls[actor]?.target;
+    const hpLoss = actorFailed ? damage + 1 : Math.max(1, Math.floor(damage / 2));
+    character.hp = Math.max(0, character.hp - hpLoss);
+  }
 }
 
 function startTimingGame() {
@@ -1504,6 +1984,7 @@ function strikeTimingGame() {
   const score = scoreFromTimingPercent(ui.timing.marker);
   window.cancelAnimationFrame(ui.timing.raf);
   ui.timing.active = false;
+  ui.bonusScore = score;
   registerScore(campaign, score);
   saveState(state);
   showToast(`Score parsed: ${score}`);
@@ -1537,5 +2018,6 @@ if (!state || !state.version) {
   saveState(state);
 }
 
+normalizeStoredSettings();
 initGlobalUx();
 render();

@@ -2,7 +2,6 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 import { fallbackModelsForTier, modelForTier, routeForTier } from "./src/js/llmConfig.js";
-import { GM_TURN_SCHEMA } from "./src/js/prompts.js";
 
 const root = resolve(".");
 const port = Number(process.env.PORT || 8787);
@@ -89,28 +88,39 @@ async function handleGemini(request, response) {
   const fallbackModels = Array.isArray(body.fallbackModels) ? body.fallbackModels : fallbackModelsForTier(tier);
   const prompt = body.prompt || "";
   const systemInstruction = body.systemInstruction || "";
+  const responseJsonSchema = body.responseJsonSchema || {};
   const maxOutputTokens = Number(body.settings?.maxOutputTokens || body.generation?.maxOutputTokens || route.maxOutputTokens || 4096);
   const thinkingLevel = body.settings?.thinkingLevel || body.generation?.thinkingLevel || route.thinkingLevel || "low";
   const thinkingBudget = Number(body.settings?.thinkingBudget || body.generation?.thinkingBudget || route.thinkingBudget || 0);
   const temperature = Number(body.settings?.temperature || body.generation?.temperature || route.temperature || 0.85);
   const modelsToTry = [...new Set([model, ...fallbackModels].filter(Boolean))];
 
+  const configForModel = (candidateModel) => ({
+    temperature,
+    maxOutputTokens,
+    thinkingLevel: route.fallbackConfig?.[candidateModel]?.thinkingLevel ?? thinkingLevel,
+    thinkingBudget: Number(route.fallbackConfig?.[candidateModel]?.thinkingBudget ?? thinkingBudget)
+  });
+
   const buildThinkingConfig = (candidateModel, includeThinking) => {
     if (!includeThinking) return {};
+    const candidateConfig = configForModel(candidateModel);
     if (candidateModel.startsWith("gemini-2.5")) {
-      return thinkingBudget ? { thinkingConfig: { thinkingBudget } } : {};
+      return Number.isFinite(candidateConfig.thinkingBudget) ? { thinkingConfig: { thinkingBudget: candidateConfig.thinkingBudget } } : {};
     }
-    return thinkingLevel ? { thinkingConfig: { thinkingLevel } } : {};
+    return candidateConfig.thinkingLevel ? { thinkingConfig: { thinkingLevel: candidateConfig.thinkingLevel } } : {};
   };
 
   const buildSchemaConfig = (candidateModel) => {
     if (candidateModel.startsWith("gemini-2.5")) {
-      return { responseJsonSchema: GM_TURN_SCHEMA };
+      return { responseJsonSchema };
     }
-    return { responseSchema: toGeminiResponseSchema(GM_TURN_SCHEMA) };
+    return { responseSchema: toGeminiResponseSchema(responseJsonSchema) };
   };
 
-  const buildGeminiBody = (candidateModel, includeThinking) => ({
+  const buildGeminiBody = (candidateModel, includeThinking) => {
+    const candidateConfig = configForModel(candidateModel);
+    return ({
       system_instruction: {
         parts: [{ text: systemInstruction }]
       },
@@ -124,10 +134,11 @@ async function handleGemini(request, response) {
         responseMimeType: "application/json",
         ...buildSchemaConfig(candidateModel),
         ...buildThinkingConfig(candidateModel, includeThinking),
-        temperature,
-        maxOutputTokens
+        temperature: candidateConfig.temperature,
+        maxOutputTokens: candidateConfig.maxOutputTokens
       }
-  });
+    });
+  };
 
   const attempts = [];
   for (const candidateModel of modelsToTry) {
@@ -143,11 +154,22 @@ async function handleGemini(request, response) {
       const payload = await upstream.json();
       if (upstream.ok) {
         const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim() || "";
-        sendJson(response, 200, { provider: "gemini", mode: "generate-content", model: candidateModel, text, payload, attempts });
+        const usedConfig = configForModel(candidateModel);
+        sendJson(response, 200, {
+          provider: "gemini",
+          mode: "generate-content",
+          model: candidateModel,
+          text,
+          payload,
+          attempts,
+          usedConfig,
+          fallbackUsed: candidateModel !== model,
+          fallbackReason: candidateModel !== model ? attempts.map((attempt) => `${attempt.model}: ${attempt.status} ${attempt.message}`).join(" | ") : ""
+        });
         return;
       }
       const message = payload?.error?.message || "Gemini request failed.";
-      attempts.push({ model: candidateModel, status: upstream.status, message, thinking: includeThinking });
+      attempts.push({ model: candidateModel, status: upstream.status, message, thinking: includeThinking, config: configForModel(candidateModel) });
       const thinkingUnsupported = upstream.status === 400 && /thinking/i.test(message) && /not supported/i.test(message);
       if (!thinkingUnsupported) break;
     }

@@ -191,6 +191,7 @@ export function createInitialState() {
       }
     ],
     activeEpicurogotchiId: "piccolo",
+    llmRuns: [],
     memories: deepClone(defaultFiles),
     settings: {
       modelTier: "medium",
@@ -225,6 +226,7 @@ export function ensureState(candidate) {
     },
     ritualPools: Array.isArray(candidate.ritualPools) && candidate.ritualPools.length ? candidate.ritualPools : base.ritualPools,
     epicurogotchis: Array.isArray(candidate.epicurogotchis) && candidate.epicurogotchis.length ? candidate.epicurogotchis : base.epicurogotchis,
+    llmRuns: Array.isArray(candidate.llmRuns) ? candidate.llmRuns : base.llmRuns,
     memories: {
       ...base.memories,
       ...(candidate.memories || {})

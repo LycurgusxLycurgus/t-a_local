@@ -30,15 +30,15 @@ function toGeminiResponseSchema(schema) {
   return next;
 }
 
-export async function callGemini({ prompt, settings, apiKey }) {
+export async function callGemini({ prompt, settings, apiKey, responseJsonSchema = GM_TURN_SCHEMA, systemInstruction: overrideSystemInstruction = "" }) {
   const mode = settings.llmMode || "generate-content";
   const route = routeForTier(settings.modelTier);
   const model = modelForTier(settings.modelTier);
-  const systemInstruction = buildSystemInstruction();
+  const systemInstruction = overrideSystemInstruction || buildSystemInstruction();
   const endpoint = settings.llmEndpoint || (window.location.port === "8787" ? "/api/gemini" : "");
 
   if (endpoint) {
-    return callProxyEndpoint({ prompt, settings: { ...route, ...settings, llmEndpoint: endpoint }, model, systemInstruction });
+    return callProxyEndpoint({ prompt, settings: { ...settings, ...route, modelTier: settings.modelTier, llmEndpoint: endpoint, llmMode: settings.llmMode }, model, systemInstruction, responseJsonSchema });
   }
 
   if (!apiKey) {
@@ -49,10 +49,10 @@ export async function callGemini({ prompt, settings, apiKey }) {
     return callGeminiInteractions({ prompt, settings, apiKey, model, systemInstruction });
   }
 
-  return callGeminiGenerateContent({ prompt, settings, apiKey, model, systemInstruction });
+  return callGeminiGenerateContent({ prompt, settings: { ...settings, ...route, modelTier: settings.modelTier, llmMode: settings.llmMode }, apiKey, model, systemInstruction, responseJsonSchema });
 }
 
-async function callProxyEndpoint({ prompt, settings, model, systemInstruction }) {
+async function callProxyEndpoint({ prompt, settings, model, systemInstruction, responseJsonSchema }) {
   const response = await fetch(settings.llmEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -63,7 +63,7 @@ async function callProxyEndpoint({ prompt, settings, model, systemInstruction })
       fallbackModels: fallbackModelsForTier(settings.modelTier),
       prompt,
       systemInstruction,
-      responseJsonSchema: GM_TURN_SCHEMA,
+      responseJsonSchema,
       generation: {
         thinkingLevel: settings.thinkingLevel || routeForTier(settings.modelTier).thinkingLevel,
         thinkingBudget: settings.thinkingBudget || routeForTier(settings.modelTier).thinkingBudget,
@@ -83,13 +83,13 @@ async function callProxyEndpoint({ prompt, settings, model, systemInstruction })
   const payload = await response.json();
   return {
     mode: "proxy",
-    model,
+    model: payload.model || model,
     payload,
     text: payload.text || payload.visibleTurnText || JSON.stringify(payload)
   };
 }
 
-async function callGeminiGenerateContent({ prompt, settings, apiKey, model, systemInstruction }) {
+async function callGeminiGenerateContent({ prompt, settings, apiKey, model, systemInstruction, responseJsonSchema }) {
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: {
@@ -108,7 +108,7 @@ async function callGeminiGenerateContent({ prompt, settings, apiKey, model, syst
       ],
       generationConfig: {
         responseMimeType: "application/json",
-        ...(model.startsWith("gemini-2.5") ? { responseJsonSchema: GM_TURN_SCHEMA } : { responseSchema: toGeminiResponseSchema(GM_TURN_SCHEMA) }),
+        ...(model.startsWith("gemini-2.5") ? { responseJsonSchema } : { responseSchema: toGeminiResponseSchema(responseJsonSchema) }),
         thinkingConfig: {
           ...(model.startsWith("gemini-2.5")
             ? { thinkingBudget: Number(settings.thinkingBudget || routeForTier(settings.modelTier).thinkingBudget || 16000) }
@@ -144,8 +144,9 @@ async function callGeminiInteractions({ prompt, settings, apiKey, model, systemI
       system_instruction: systemInstruction,
       input: prompt,
       generation_config: {
-        thinking_level: settings.thinkingLevel || "low",
-        max_output_tokens: Number(settings.maxOutputTokens || 2400)
+        thinking_level: settings.thinkingLevel || routeForTier(settings.modelTier).thinkingLevel || "high",
+        temperature: Number(settings.temperature || routeForTier(settings.modelTier).temperature || 0.85),
+        max_output_tokens: Number(settings.maxOutputTokens || routeForTier(settings.modelTier).maxOutputTokens || 20000)
       }
     })
   });

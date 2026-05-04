@@ -1,0 +1,262 @@
+/* 
+ * ═══════════════════════════════════════════════════════════════
+ * TOTUMAS & AVENTURAS — Design Tokens
+ * ═══════════════════════════════════════════════════════════════
+ * 
+ * Aesthetic Rationale:
+ * These tokens reject the homogenizing pressure of "clean modern" 
+ * design systems. We use a restricted palette drawn from campfire 
+ * metaphors (Abyss, Ember, Parchment) but introduce intentional 
+ * dissonance through Resonance (magenta-purple) and Arcane (teal) 
+ * accents that create visual tension against the warm axis.
+ * 
+ * The spacing scale deliberately breaks from 4px/8px orthodoxy 
+ * at higher values to create rhythm breaks — memorable spatial 
+ * beats that prevent the interface from feeling template-generated.
+ * 
+ * Every token must pass the defensibility test: "Does this choice 
+ * solve the problem equally well while being categorically non-generic?"
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* ─── The Void ───
+     Backgrounds so dark they absorb light. 
+     We avoid pure black (#000) to prevent OLED smearing and 
+     to maintain a warm, organic depth. */
+  --color-abyss-950: #050504;
+  --color-abyss-900: #0a0908;
+  --color-abyss-800: #13110f;
+  --color-abyss-700: #1a1816;
+  --color-abyss-600: #24211e;
+
+  /* ─── The Ember ───
+     Warmth, action, danger, life. 
+     These are the "hot" colors of user agency. */
+  --color-ember-500: #e36414;
+  --color-ember-300: #fb8b24;
+  --color-ember-100: #ffc971;
+
+  /* ─── The Parchment ───
+     Text that glows rather than shines. 
+     Neutral is intentionally desaturated to avoid digital glare. */
+  --color-parchment-100: #f2e9e4;
+  --color-parchment-300: #cdbfb5;
+  --color-parchment-500: #9a8c73;
+
+  /* ─── Intentional Dissonance ───
+     Colors that create visual tension against the warm ember/gold axis.
+     Used sparingly for focus, selection, and "otherworldly" states.
+     This is the critical difference between a generic dark theme 
+     and a deliberately designed artifact. */
+  --color-resonance-600: #5f0f40;
+  --color-resonance-400: #a33f6d;
+  --color-arcane-500: #2e6f73;
+  --color-arcane-300: #4a9fa3;
+
+  /* ─── Functional Accents ─── */
+  --color-success-500: #76946a;
+  --color-error-500: #9e2a2b;
+
+  /* ─── Typography ───
+     The Mythic-Technical Split:
+     - Cinzel evokes stone inscriptions and epic weight.
+     - Lora carries the intimacy of handwritten letters.
+     - JetBrains Mono provides the cold precision of an ancient 
+       codex or ritual manual. Unexpected in fantasy, unforgettable 
+       in practice. */
+  --font-display: "Cinzel", "Trajan Pro", Georgia, serif;
+  --font-body: "Lora", "Palatino Linotype", Georgia, serif;
+  --font-ui: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+
+  /* ─── Spacing: The Asymmetric Scale ───
+     We deliberately break from 4px/8px orthodoxy at higher values.
+     Rhythm breaks (14, 18, 28, 40, 56, 88) create memorable spatial 
+     beats. A user should *feel* the difference between a tight 
+     cluster and a cavernous pause. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 14px;   /* Breaks grid — creates micro-tension */
+  --space-4: 18px;   /* Breaks grid — unexpected density */
+  --space-5: 28px;   /* Breaks grid — generous but odd */
+  --space-6: 40px;   /* Breaks grid — dramatic pause */
+  --space-7: 56px;   /* Breaks grid — monumental */
+  --space-8: 88px;   /* Breaks grid — cavernous negative space */
+
+  /* ─── Radii: Forged, Not Molded ───
+     Minimal rounding suggests hand-cut stone or weathered wood.
+     We reject the "bubbly" aesthetic of modern social apps. */
+  --radius-sharp: 0px;
+  --radius-chipped: 2px;
+  --radius-worn: 4px;
+  --radius-smooth: 6px;
+
+  /* ─── Elevation: Weight, Not Air ───
+     We reject Material Design's airy shadows. These suggest 
+     physical mass — objects resting on leather or stone. */
+  --shadow-artifact: 0 18px 45px rgba(0, 0, 0, 0.72);
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.38);
+  --shadow-intimate: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+  /* ─── Glows: Heat, Not Light ───
+     Ember radiates; it doesn't illuminate evenly. */
+  --glow-ember: 0 0 22px rgba(227, 100, 20, 0.25);
+  --glow-ember-strong: 0 0 35px rgba(227, 100, 20, 0.4);
+  --glow-arcane: 0 0 22px rgba(46, 111, 115, 0.3);
+  --glow-resonance: 0 0 22px rgba(163, 63, 109, 0.25);
+
+  /* ─── Borders: Age and Wear ───
+     Faint lines suggest patina. Lit lines suggest active heat. */
+  --border-faint: 1px solid rgba(154, 140, 115, 0.18);
+  --border-lit: 1px solid rgba(227, 100, 20, 0.5);
+  --border-arcane: 1px solid rgba(46, 111, 115, 0.45);
+  --border-resonance: 1px solid rgba(163, 63, 109, 0.45);
+
+  /* ─── Motion: Purposeful, Not Decorative ───
+     Durations are asymmetric — some fast (instant), some deliberately 
+     slow (ritual). This mirrors the unpredictability of fire. */
+  --duration-instant: 80ms;
+  --duration-swift: 160ms;
+  --duration-deliberate: 320ms;
+  --duration-ritual: 600ms;
+
+  --ease-ember: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-ignite: cubic-bezier(0.16, 1, 0.3, 1);   /* Explosive start, gentle settle */
+  --ease-smolder: cubic-bezier(0.7, 0, 0.84, 0);  /* Gentle start, sharp finish */
+}
+
+/* ─── Reduced Motion: Accessibility is Non-Negotiable ───
+   We respect the user's system preference and disable non-essential 
+   motion. Essential state changes (opacity for visibility) remain. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-swift: 0ms;
+    --duration-deliberate: 0ms;
+    --duration-ritual: 0ms;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--color-abyss-950);
+}
+
+/* 
+   Body background: Multiple layered gradients create depth.
+   1. A radial ember glow at the top-center, fading quickly — 
+      like firelight on a cave ceiling.
+   2. Diagonal hash lines at extremely low opacity — suggesting 
+      woven texture or ancient fabric.
+   3. The abyss base.
+*/
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--color-parchment-100);
+  font-family: var(--font-body);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(227, 100, 20, 0.08), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0 1px, transparent 1px 8px),
+    var(--color-abyss-900);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Skip link: visible only on keyboard focus */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--space-4);
+  z-index: 100;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-lit);
+  border-radius: var(--radius-worn);
+  background: var(--color-abyss-800);
+  color: var(--color-ember-300);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: top var(--duration-swift) var(--ease-ember);
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+  outline: 3px solid var(--color-arcane-300);
+  outline-offset: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.loading-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-5);
+  color: var(--color-parchment-300);
+  font-family: var(--font-ui);
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+}
+
+.ember-mark {
+  width: 48px;
+  height: 48px;
+  border: var(--border-lit);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-ember-300), var(--color-ember-500) 38%, transparent 41%);
+  box-shadow: var(--glow-ember);
+}
+
+/* Glow breathe animation for loading state */
+@keyframes glow-breathe {
+  0%, 100% {
+    box-shadow: 0 0 18px rgba(227, 100, 20, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(227, 100, 20, 0.45);
+    transform: scale(1.06);
+  }
+}
+
+.glow-breathe {
+  animation: glow-breathe 3s var(--ease-ember) infinite;
+}

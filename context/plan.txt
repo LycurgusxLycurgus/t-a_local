@@ -1,0 +1,893 @@
+# Totumas y Aventuras — App Spec + LLM OS v0.3
+
+> **Meta del documento:** dejar claro, para Codex y para los futuros agentes, dos cosas: **(1) vista general de la app** y **(2) frontera estricta entre lo que hace el código y lo que hace el LLM**. Esta versión reemplaza el enfoque “D&D adaptado” por un enfoque propio: **TyA es un fork inspirado por RPGs tácticos, no una emulación de D&D**.
+
+---
+
+## 0) Tesis del producto
+
+**Totumas y Aventuras (TyA)** es una app local-first de campañas narrativo-tácticas rápidas para **dos jugadores principales: Juanete e Ironmole**. Cada campaña dura alrededor de **20 turnos promedio**, con ritmo de **2 turnos por día**, idealmente durante **2 semanas de días hábiles**. La app combina narrativa de GM-AI, combate frecuente, micro/macro rituales out-game, minijuegos simples, progresión de Epicurogotchis y memoria persistente en archivos/estado local.
+
+La app no debe sentirse como “chat con un bot que improvisa todo”, sino como un **motor de campaña** donde el código sostiene estado, reglas, turnos, stats, tiradas, rituales, personajes, inventario, progreso y memoria; mientras el LLM se enfoca en narrar, dirigir, reaccionar, proponer consecuencias y mantener la magia.
+
+---
+
+## 1) Identidad de TyA
+
+### 1.1 Lo que TyA es
+
+TyA es:
+
+* un RPG narrativo-táctico de turnos cortos,
+* con campañas rápidas y cerrables,
+* con estética Vanaheim/Epicurogotchi,
+* con combates como motor principal,
+* con quests out-game integradas diegéticamente,
+* con un GM-AI que dirige la historia,
+* y con un sistema de archivos tipo Bridgecrux/OpenClaw para memoria y prompts.
+
+### 1.2 Lo que TyA NO es
+
+TyA no intenta replicar, imitar ni clonar D&D. Toma inspiración general de:
+
+* turnos,
+* incertidumbre,
+* clases,
+* combate táctico,
+* progresión,
+* loot,
+* GM,
+
+pero su identidad mecánica real viene de:
+
+* **4 stats / 4 esferas**,
+* campañas rápidas de 20 turnos,
+* combate + minijuego + reto out-game,
+* Epicurogotchi sheets,
+* micro/macro rituales,
+* Vanaheim companions,
+* totumas absurdas,
+* y progresión afectiva/ritual, no solo numérica.
+
+---
+
+## 2) Pilares no negociables
+
+1. **Campañas rápidas**: target 20 turnos; expandable a 24 si se juega fin de semana.
+2. **Ritmo diario**: 2 turnos/día; cada turno debe hacer avanzar bastante la campaña.
+3. **80/20 de estructura**: ~80% combates o desafíos tácticos; ~20% exploración/social con tiradas.
+4. **Cada combate tiene doble capa**:
+
+   * desafío in-game: tirada / minijuego / decisión táctica;
+   * desafío out-game: micro ritual o macro ritual seleccionado desde pools configurables.
+5. **La app decide reglas y estado; el LLM dirige ficción y consecuencias.**
+6. **No hard constraints excesivos al LLM**: solo restricciones esenciales; el resto debe dar libertad creativa.
+7. **Los out-game challenges deben ser diegéticos**: no “pausa el juego y haz X”, sino “la escena exige una acción externa que en el mundo se traduce como llave, sello, combustible, herida, ofrenda o resonancia”.
+8. **No frontend genérico**: el diseño visual se hará en Codex usando archivos de design system + imágenes de referencia + browser feedback.
+9. **Local-first v1**: HTML/CSS/JS deployable en Netlify; persistencia en navegador/import-export de archivos JSON/MD.
+10. **Bridgecrux/LLM OS**: prompts y memoria en archivos markdown virtuales, con router `assistants.md` y task files por tamaño de modelo.
+
+---
+
+## 3) Vista general de la app
+
+### 3.1 App loop macro
+
+1. El usuario crea/abre una campaña.
+2. La app carga memoria local + personajes + ritual pools + imágenes de Epicurogotchi.
+3. La app pide setup mínimo: campaña, tono, clase elegida por cada jugador, duración objetivo, intensidad de combate.
+4. El LLM genera Turno 0 / arranque o siguiente turno usando el estado compacto enviado por el código.
+5. Los jugadores responden acciones.
+6. El código resuelve o solicita:
+
+   * tiradas,
+   * minijuegos,
+   * selección de ritual out-game,
+   * actualización de estado.
+7. El LLM narra resolución y próximo umbral.
+8. El código guarda turno, estado, consecuencias, rituales, loot, stats, memoria.
+9. Al terminar campaña, Epicurogotchi sube nivel y se actualiza su forma/imagen.
+
+### 3.2 Pantallas principales
+
+#### A) Dashboard
+
+Debe mostrar:
+
+* campaña activa,
+* turno actual / máximo de turnos,
+* día estimado de campaña,
+* próximos pendientes,
+* Epicurogotchi activo,
+* estado de Juanete, Ironmole y Vanaheim companions.
+
+#### B) Campaign Setup
+
+Debe permitir:
+
+* elegir tipo de campaña: Canon / Rogue Crossover / Free Weird Run,
+* elegir duración objetivo: 20 default, 24 opcional,
+* elegir intensidad: normal / caótica / boss-heavy,
+* pegar seed libre de campaña,
+* elegir clase base para Juanete e Ironmole,
+* dejar que el GM-AI cree subespecie/subclase/talentos según campaña.
+
+#### C) Campaign Play
+
+Pantalla central:
+
+* log de turnos,
+* current scene,
+* acciones disponibles sugeridas,
+* acciones libres de los jugadores,
+* botón “resolver turno”,
+* estado compacto visible,
+* bloque “Out-game mission: active / none”.
+
+#### D) Combat Panel
+
+Debe aparecer cuando el estado sea combate.
+Incluye:
+
+* enemigos,
+* HP/estado simple,
+* acciones disponibles,
+* minijuego requerido,
+* tirada requerida,
+* ritual out-game requerido,
+* botón “complete ritual / submit proof note”.
+
+#### E) Rituals Library
+
+Permite agregar, editar, borrar y etiquetar:
+
+* **micro rituales** para combates pequeños,
+* **macro rituales** para bosses / combates grandes,
+* esfera asociada,
+* dificultad,
+* duración aproximada,
+* tono,
+* si requiere prueba/nota.
+
+#### F) Epicurogotchi Sheet
+
+Reemplaza el viejo formulario por esfera.
+Debe permitir:
+
+* registrar “Enjuanetados” descubiertos,
+* convertir hallazgos en micro/macro rituales,
+* subir imagen del Epicurogotchi,
+* ver nivel 1–99,
+* al llegar a 99 reiniciar en nueva forma,
+* guardar historial de formas.
+
+#### G) Memory / Files
+
+Vista tipo workspace:
+
+* `memory.md`
+* `assistants.md`
+* `heavy_tasks.md`
+* `medium_tasks.md`
+* `small_tasks.md`
+* `campaigns/*.md`
+* `rituals/*.md`
+* `characters/*.md`
+* `design/*.md`
+
+Debe permitir editar, importar, exportar.
+
+---
+
+## 4) Stats, esferas y clases
+
+### 4.1 Stats oficiales TyA
+
+TyA usa exactamente estas 4 stats:
+
+* **Fuerza** ↔ esfera **corpomaterial**
+* **Inteligencia** ↔ esfera **intelectual**
+* **Carisma** ↔ esfera **emocional**
+* **Magnetismo** ↔ esfera **sexocreativa**
+
+No usar FUE/DEX/CON/INT/SAB/CAR como sistema base. Si el LLM trae clases tipo D&D, debe traducirlas a estas 4 stats.
+
+### 4.2 Clases base
+
+El jugador elige una **clase base clásica** para cada PC. Ejemplos permitidos:
+
+* Guerrero
+* Berserker
+* Paladín
+* Pícaro
+* Cazador
+* Bardo
+* Mago
+* Hechicero
+* Brujo
+* Clérigo/Sanador
+* Monje
+* Alquimista
+* Invocador
+* Psiónico
+* Artificiero/Saboteador
+
+### 4.3 Qué hace el código con la clase
+
+El código mantiene una tabla local de clases base → stats iniciales, recursos, tendencia de habilidades.
+
+Ejemplo conceptual:
+
+* Guerrero: Fuerza alta, Magnetismo medio, Carisma medio, Inteligencia baja/media.
+* Mago: Inteligencia alta, Magnetismo medio, Carisma medio, Fuerza baja.
+* Bardo: Carisma alta, Magnetismo medio/alto, Inteligencia media, Fuerza baja/media.
+* Brujo: Magnetismo alto, Inteligencia media, Carisma media/alta, Fuerza baja.
+
+El código genera stats iniciales deterministas según clase + nivel, no el LLM.
+
+### 4.4 Qué hace el LLM con la clase
+
+El LLM toma la clase elegida y crea para esa campaña:
+
+* subespecie/subclase temática,
+* talentos narrativos,
+* habilidad TyA única,
+* flavor,
+* estilo táctico,
+* relación con Vanaheim.
+
+El LLM no inventa números base si el código ya los calculó. Solo puede proponer modificadores narrativos en JSON para que el código los acepte/rechace.
+
+---
+
+## 5) Turn economy y campaña de 20 turnos
+
+### 5.1 Duración estándar
+
+* Campaña normal: **20 turnos**.
+* Ritmo recomendado: **2 turnos/día x 10 días hábiles**.
+* Modo extendido: **24 turnos** si se juega fin de semana.
+
+### 5.2 Distribución sugerida
+
+Para 20 turnos:
+
+* Turno 0: setup / roles / arranque.
+* Turnos 1–4: Acto I — entrada, primer combate, primera pista.
+* Turnos 5–14: Acto II — combates, complicación, rituals, bosses intermedios.
+* Turnos 15–20: Acto III — convergencia, final boss, resolución, loot, level-up Epicurogotchi.
+
+### 5.3 Regla de avance por turno
+
+Cada turno debe contener al menos 2 de estas 4 cosas:
+
+* avance de situación,
+* consecuencia mecánica,
+* tensión táctica,
+* recompensa/coste/descubrimiento.
+
+Prohibido generar turnos que solo “ambienten” sin cambiar el estado del juego.
+
+---
+
+## 6) Combate TyA
+
+### 6.1 Estructura de cada combate
+
+Cada combate se compone de:
+
+1. situación táctica,
+2. objetivo claro,
+3. amenaza visible,
+4. tirada o score in-game,
+5. minijuego simple,
+6. ritual out-game seleccionado,
+7. resolución,
+8. recompensa o coste.
+
+### 6.2 Combate pequeño
+
+Debe usar:
+
+* 1 micro ritual out-game,
+* 1 tirada o minijuego simple,
+* recompensa pequeña.
+
+### 6.3 Combate grande / boss
+
+Debe usar:
+
+* 1 macro ritual out-game,
+* 1 tirada o minijuego con umbral mayor,
+* decisión táctica importante,
+* recompensa grande / relic / level progress.
+
+### 6.4 Mini game v1
+
+V1 puede implementar un minijuego simple y extensible:
+
+**Score Challenge**
+
+* El código genera objetivo: 1–20.
+* El jugador ejecuta un minijuego rápido o introduce score manual.
+* Score 20 = perfect roll.
+* Score 15–19 = strong success.
+* Score 10–14 = mixed success.
+* Score 2–9 = failure with cost.
+* Score 1 = comic/critical complication.
+
+Futuro: reemplazar Score Challenge por minijuegos reales: timing bar, reaction click, memory tiles, aim dot, rhythm tap.
+
+---
+
+## 7) Dificultad, rolls y DC: regla código vs LLM
+
+### 7.1 Problema detectado
+
+En los tests, el LLM puso DCs demasiado altas o inconsistentes. Por eso el LLM **no debe decidir números finales de dificultad**.
+
+### 7.2 Regla nueva
+
+El LLM solo emite una señal estructurada:
+
+```json
+{
+  "challengeType": "combat|explore|social|ritual|boss",
+  "difficultyBand": "easy|normal|hard|boss|mythic",
+  "primaryStat": "Fuerza|Inteligencia|Carisma|Magnetismo",
+  "stakes": "low|medium|high|campaign-critical",
+  "requiresOutGame": true,
+  "ritualSize": "micro|macro|none"
+}
+```
+
+El código traduce eso a:
+
+* DC exacta,
+* score objetivo,
+* ritual random desde pool,
+* recompensas,
+* costes.
+
+### 7.3 Tabla sugerida de dificultad
+
+* easy → DC/target 8–10
+* normal → 11–13
+* hard → 14–16
+* boss → 17–18
+* mythic → 19–20
+
+La app puede aplicar modificadores por:
+
+* nivel,
+* loot,
+* condición,
+* ayuda de Vanaheim,
+* ritual completado,
+* turno de campaña.
+
+---
+
+## 8) Out-game missions / rituals
+
+### 8.1 Regla central
+
+Cada combate debe declarar explícitamente una de estas dos cosas:
+
+* **Out-game mission: none**
+* **Out-game mission required/optional: [ritual]**
+
+Esto debe aparecer en el estado del turno y en el prompt enviado al LLM.
+
+### 8.2 Pools editables por el usuario
+
+La app debe permitir crear:
+
+**Micro ritual**
+
+* 1–10 min
+* combate pequeño
+* ejemplo: mini práctica, gesto, nota, movimiento, pequeño juego, micro creación.
+
+**Macro ritual**
+
+* 15–60+ min
+* boss / major encounter
+* ejemplo: reto importante, sesión de juego externa, creación estética, conversación, logro físico, compra/upgrade, práctica intensa.
+
+Cada ritual tiene:
+
+* título,
+* descripción,
+* esfera,
+* tamaño: micro/macro,
+* tono,
+* dificultad,
+* cooldown opcional,
+* tags,
+* reward bias.
+
+### 8.3 Integración diegética
+
+El LLM debe convertir el ritual elegido por código en algo del mundo:
+
+* sello,
+* llave,
+* ofrenda,
+* entrenamiento,
+* resonancia,
+* pacto,
+* combustible,
+* prueba de esfera,
+* herida que solo cierra con acción externa.
+
+No debe decirlo como tarea administrativa.
+
+---
+
+## 9) Epicurogotchi progression
+
+### 9.1 Cambio respecto al sistema anterior
+
+Ya no se pide a los jugadores llenar una cosa por esfera antes de cada campaña. En su lugar:
+
+* Los jugadores trabajan en su **Epicurogotchi Sheet de Enjuanetados**.
+* Cuando descubren algo interesante, lo registran.
+* Ese hallazgo puede convertirse en micro ritual o macro ritual.
+* Al finalizar cada campaña, el Epicurogotchi sube nivel.
+
+### 9.2 Nivel y formas
+
+* Cada Epicurogotchi tiene nivel **1–99**.
+* Al superar 99, reinicia en una **nueva forma**.
+* La app permite subir una imagen por forma/nivel relevante.
+* El estado visual de la app debe reflejar la imagen activa.
+
+### 9.3 Fin de campaña
+
+Al cerrar campaña, la app debe pedir:
+
+* ¿Qué fue interesante?
+* ¿Qué nuevo Enjuanetado se descubrió?
+* ¿Qué micro/macro ritual debe añadirse?
+* ¿Qué loot o cambio queda para futuras campañas?
+
+Luego:
+
+* incrementa nivel Epicurogotchi,
+* guarda recap,
+* actualiza memoria.
+
+---
+
+## 10) Reglas de output del GM-AI
+
+Cada turno del GM debe incluir secciones compactas y consistentes:
+
+```text
+═══ [CAMPAIGN_NAME] — Turno [N]/[MAX] ═══
+
+─── RESOLUCIÓN ───
+[qué cambió por acciones/tiradas/rituales anteriores]
+
+─── ESCENA ───
+[narración compacta, acción > descripción, 150–350 palabras]
+
+─── ESTADO TÁCTICO ───
+[ubicación, amenazas, oportunidades, HP/condiciones si aplica]
+
+─── OUT-GAME ───
+[none | optional | required] + [ritual integrado diegéticamente]
+
+─── ACCIONES POSIBLES ───
+[4 opciones mínimo, distintas por jugador si aplica]
+
+─── MECÁNICA ───
+[qué debe resolver el código: tirada/minijuego/stat/difficulty signal]
+
+¿Qué hacen Juanete e Ironmole?
+```
+
+### 10.1 Reglas de estilo del GM
+
+* Prosa compacta, dura de variar.
+* No usar “no es X, sino Y” como muletilla.
+* No crear compuestos inventados excesivos si no tienen función.
+* No llenar de lore ornamental.
+* Las acciones sugeridas deben ser coherentes con clase, estado, loot y contexto.
+* Mínimo 4 opciones de acción cuando se pidan sugerencias.
+* El GM nunca decide acciones de Juanete/Ironmole.
+* El GM sí puede decidir reacciones de Vanaheim companions.
+
+---
+
+## 11) Qué hace el código vs qué hace el LLM
+
+## 11.1 El código debe hacer
+
+### Estado y persistencia
+
+* Guardar campañas, turnos, personajes, stats, loot, rituales, memoria.
+* Guardar todo local-first en navegador.
+* Permitir export/import JSON + markdown.
+* Mantener contador `turnNumber` y `maxTurns`.
+* Mantener campaign phase: setup / act1 / act2 / act3 / epilogue.
+
+### Reglas mecánicas
+
+* Calcular stats iniciales según clase.
+* Calcular modificadores.
+* Calcular DC/targets desde difficulty signals.
+* Resolver tiradas/minijuegos.
+* Aplicar damage, healing, conditions, rewards.
+* Seleccionar ritual random según tamaño/esfera/tags.
+* Bloquear avance si ritual required no está completed.
+
+### Prompt assembly
+
+* Compactar estado y enviarlo al LLM cada turno.
+* Incluir roles, stats, items, abilities, turn count, active quests, active rituals, recent recap.
+* Inyectar universal system prompt + `assistants.md` + task file relevante.
+* Evitar mandar todo el historial bruto; usar summary + last turns.
+
+### UI
+
+* Mostrar estado claro y editable.
+* Mostrar misiones out-game activas.
+* Mostrar ritual pools.
+* Mostrar Epicurogotchi image/level/form.
+* Mostrar workspace markdown.
+
+### Validación
+
+* Exigir JSON del LLM para challenge signals.
+* Validar que el LLM no cambie stats directamente.
+* Validar que el LLM no avance turno sin resolver requirements.
+* Detectar si falta sección OUT-GAME y pedir reparación.
+
+## 11.2 El LLM debe hacer
+
+### Narrativa
+
+* Crear campaña, escenas, facciones, enemigos, giros, tono.
+* Narrar consecuencias de resultados dados por código.
+* Mantener coherencia del mundo y personajes.
+* Dirigir Vanaheim companions.
+
+### Diseño contextual
+
+* Crear subclases/subespecies/talentos según campaña.
+* Convertir clases base en identidad TyA.
+* Integrar rituales out-game como eventos diegéticos.
+* Crear enemigos, loot y nombres con estética Vanaheim.
+
+### Decisión blanda
+
+* Sugerir difficultyBand, primaryStat, stakes.
+* Sugerir rewards narrativas.
+* Sugerir cambios de memoria.
+* Sugerir ritual relevante si el código no seleccionó uno.
+
+### Prohibiciones del LLM
+
+* No decidir DC exacta final.
+* No cambiar stats persistentes sin JSON de propuesta.
+* No inventar completación de ritual out-game.
+* No ignorar turno/maxTurns.
+* No saltarse OUT-GAME status.
+* No resolver acciones de los PCs sin input.
+
+---
+
+## 12) Arquitectura técnica v1 local-first
+
+### 12.1 Stack v1
+
+* HTML
+* CSS
+* Vanilla JavaScript
+* LocalStorage / IndexedDB
+* File import/export JSON/MD
+* Netlify static deploy
+
+No backend real en v1. “Backend” significa **local data layer**.
+
+### 12.2 Estructura sugerida
+
+```text
+/src
+  index.html
+  /css
+    tokens.css
+    layout.css
+    components.css
+  /js
+    app.js
+    state.js
+    storage.js
+    rules.js
+    campaign.js
+    prompts.js
+    llmClient.js
+    rituals.js
+    epicurogotchi.js
+    importExport.js
+  /bridgecrux
+    universal_system.md
+    assistants.md
+    heavy_tasks.md
+    medium_tasks.md
+    small_tasks.md
+    output_contracts.md
+  /design
+    design_system.md
+    visual_references.md
+    frontend_rules.md
+```
+
+### 12.3 Storage objects
+
+```js
+AppState = {
+  campaigns: [],
+  activeCampaignId: null,
+  characters: {},
+  ritualPools: [],
+  epicurogotchis: [],
+  memories: {},
+  settings: {}
+}
+```
+
+### 12.4 Campaign object
+
+```js
+Campaign = {
+  id,
+  title,
+  mode,
+  status,
+  turnNumber,
+  maxTurns,
+  phase,
+  combatWeight,
+  seed,
+  selectedClasses: { juanete, ironmole },
+  generatedRoles: { juanete, ironmole, vanaheim },
+  turns: [],
+  activeEncounter,
+  activeOutGameMission,
+  loot: [],
+  recap,
+  memoryDelta
+}
+```
+
+---
+
+## 13) Bridgecrux / LLM OS files
+
+### 13.1 universal_system.md
+
+Injected into all models.
+Must explain:
+
+* what TyA is,
+* what the app does,
+* what code controls,
+* what LLM controls,
+* output contract,
+* state discipline,
+* narrative rules.
+
+### 13.2 assistants.md
+
+Injected every turn.
+Acts as smart router.
+Must tell models:
+
+* what task they are doing,
+* which task file to read/use,
+* expected output format,
+* model escalation rules.
+
+Routing:
+
+* Heavy model → `heavy_tasks.md`
+* Medium model → `medium_tasks.md`
+* Small model → `small_tasks.md`
+
+### 13.3 heavy_tasks.md
+
+For Gemini 2.5 Pro / equivalent heavy model.
+Tasks:
+
+* campaign architecture,
+* turn 0 generation,
+* major arc repair,
+* consistency repair,
+* final campaign recap,
+* memory consolidation,
+* generating new task specs.
+
+### 13.4 medium_tasks.md
+
+For Gemini 3 Flash / main everyday model.
+Tasks:
+
+* GM turn generation,
+* scene resolution,
+* combat narration,
+* ritual integration,
+* loot narration,
+* role/subclass generation.
+
+### 13.5 small_tasks.md
+
+For Gemini 3 Flash Lite / fast model.
+Tasks:
+
+* summarize last turn,
+* extract JSON from GM output,
+* validate output sections,
+* suggest ritual tags,
+* compact state,
+* create short recap,
+* detect missing OUT-GAME block.
+
+### 13.6 output_contracts.md
+
+Contains strict JSON schemas:
+
+* `ChallengeSignal`
+* `StateDeltaProposal`
+* `RitualRequest`
+* `LootProposal`
+* `MemoryDelta`
+* `TurnRepairRequest`
+
+---
+
+## 14) LLM model routing
+
+### 14.1 Heavy model
+
+Use for:
+
+* initial campaign design,
+* complex campaign repair,
+* rule/spec generation,
+* summaries of whole campaigns,
+* when medium model output becomes generic.
+
+### 14.2 Medium model
+
+Use for:
+
+* most GM turns,
+* normal combat narration,
+* normal dialogue,
+* scene creation,
+* subclass flavor.
+
+### 14.3 Small model
+
+Use for:
+
+* validation,
+* extraction,
+* summaries,
+* recaps,
+* routing,
+* cheap transformations.
+
+---
+
+## 15) Prompt contract per turn
+
+The code sends compacted context like:
+
+```json
+{
+  "campaign": {
+    "title": "...",
+    "turnNumber": 7,
+    "maxTurns": 20,
+    "phase": "act2",
+    "mode": "canon"
+  },
+  "pcs": {
+    "juanete": { "class": "Berserker", "stats": {}, "items": [], "abilities": [] },
+    "ironmole": { "class": "Cazador", "stats": {}, "items": [], "abilities": [] }
+  },
+  "vanaheim": {},
+  "activeEncounter": {},
+  "activeOutGameMission": {},
+  "recentTurnsSummary": "...",
+  "lastPlayerActions": "...",
+  "mechanicalResults": {},
+  "requiredOutput": "gm_turn"
+}
+```
+
+The LLM returns:
+
+```json
+{
+  "visibleTurnText": "...",
+  "challengeSignal": {},
+  "stateDeltaProposal": {},
+  "ritualRequest": {},
+  "memoryDelta": {},
+  "validationNotes": []
+}
+```
+
+The UI displays `visibleTurnText`; code parses the rest.
+
+---
+
+## 16) Design system / frontend rule for Codex
+
+Codex must not invent a generic fantasy dashboard.
+
+Before coding UI, Codex must read:
+
+* `design/design_system.md`
+* `design/visual_references.md`
+* `design/frontend_rules.md`
+
+Frontend constraints:
+
+* distinctive Vanaheim visual language,
+* no generic purple SaaS gradient,
+* no default RPG parchment unless intentionally stylized,
+* strong typographic hierarchy,
+* campaign log must be readable for long text,
+* combat panel must feel tactical, not like a chat app,
+* Epicurogotchi image should be visible in dashboard/play state.
+
+Codex should use browser preview and screenshot/image feedback during implementation.
+
+---
+
+## 17) MVP acceptance criteria
+
+The v1 app is successful if it can:
+
+1. Create a campaign locally.
+2. Choose classes for Juanete/Ironmole.
+3. Generate stats from classes.
+4. Store and show Vanaheim companions.
+5. Run 20-turn campaign with turn counter.
+6. Send compact prompt context to LLM.
+7. Receive GM output and validate required sections.
+8. Require/track out-game missions in every combat.
+9. Let user add micro/macro rituals.
+10. Select ritual randomly by size/esfera/tags.
+11. Resolve score challenge / roll challenge.
+12. Save all turns locally.
+13. Export/import full campaign.
+14. Track Epicurogotchi level 1–99.
+15. Upload Epicurogotchi image.
+16. Save memory.md-style notes.
+17. Show clear distinction between code state and LLM narration.
+
+---
+
+## 18) Open questions
+
+1. First minigame: manual score input or actual timing-bar in v1?
+	A: nothing manual, the minigame should be played in-game and the score/roll should be parsed by code and communicated to llm or code or both. 
+2. Should every combat require out-game mission, or can small combats sometimes have optional micro rituals?
+	A: every combat should require out game missions, if small combat/interaction then small rituals, if big combat then big ritual; the important part is that in the 2 turns we play everyday AT LEAST one out-game mission is required to happen. 
+3. Should rituals have cooldowns?
+	A: Nope, just make sure that the same ritual is not generated twice in a mission, if we don't have enough rituals for this, let's use a joker-like, where we tell the llm to create a simple micro ritual based on the context of epicurogotchi and other rituals. 
+4. Do Juanete/Ironmole have independent Epicurogotchis or one shared active Epicurogotchi per campaign?
+	A: epicurogotchi pet is the representation of the relationship of juanete/ironmole, therefore it is just one epicurogotchi for these two people.
+5. How explicit should mature/sexocreative content be in app settings? Proposed: tone gates + fade-to-black / symbolic / explicit-off-by-default.
+	A: explicit-on by default, hardcore as long as the model allows it, if not more mild and erotic, but explicit on by default always. 
+6. Should local files be real downloaded MD/JSON files or virtual files in IndexedDB with export bundles?
+	A: virtual files.
+7. Does campaign generation happen fully upfront, or act-by-act? Recommended: **act map upfront + turn-by-turn generation**.
+	A:  let's test this: act map upfront + turn-by-turn generation

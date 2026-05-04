@@ -1,0 +1,1157 @@
+/* 
+ * ═══════════════════════════════════════════════════════════════
+ * COMPONENTS: Forged, Not Rendered
+ * ═══════════════════════════════════════════════════════════════
+ * 
+ * Every component must pass the defensibility test. If it would 
+ * blend into a corpus of similar interfaces, it is rejected.
+ * 
+ * Key distinctive choices:
+ * - Nav active states use LEFT-BORDER ACCENTS, not full boxes.
+ * - Focus states use ARCANE TEAL (dissonance), not Ember.
+ * - Buttons track mouse position for radial ember hover.
+ * - Cards ("Totumas") have top-gradient accents with Resonance.
+ * - Progress tracks use tri-color gradients (purple/ember/gold).
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+/* ─────────────────────────────────────────────────────────────
+   NAVIGATION
+   ───────────────────────────────────────────────────────────── */
+
+.nav-button,
+.btn,
+.icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  border-radius: var(--radius-worn);
+  text-decoration: none;
+  overflow: hidden;
+  transition: 
+    border-color var(--duration-swift) var(--ease-ember),
+    background var(--duration-swift) var(--ease-ember),
+    color var(--duration-swift) var(--ease-ember),
+    box-shadow var(--duration-swift) var(--ease-ember),
+    transform var(--duration-swift) var(--ease-ember);
+}
+
+/* Nav buttons: The Codex Index
+   Left-aligned, technical, precise. The active state uses a 
+   3px left border + gradient fade — distinctive and directional. */
+.nav-button {
+  justify-content: flex-start;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid transparent;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--color-parchment-300);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+}
+
+.nav-button.is-active {
+  border-left-color: var(--color-ember-500);
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  background: linear-gradient(90deg, rgba(227, 100, 20, 0.12), transparent 80%);
+  color: var(--color-parchment-100);
+  box-shadow: inset 0 0 18px rgba(227, 100, 20, 0.08);
+}
+
+.nav-button:hover,
+.btn.secondary:hover,
+.icon-button:hover {
+  border-color: rgba(227, 100, 20, 0.5);
+  background: rgba(227, 100, 20, 0.08);
+  color: var(--color-parchment-100);
+}
+
+.nav-button svg,
+.btn svg,
+.icon-button svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   BUTTONS: The Resolves
+   ───────────────────────────────────────────────────────────── */
+
+/* Primary Resolve: Ember core
+   We add a radial-gradient overlay that tracks mouse position 
+   via CSS custom properties (--mouse-x, --mouse-y). This creates 
+   a "heat follows attention" effect that is impossible to achieve 
+   with static CSS alone. */
+.btn {
+  padding: 0 var(--space-5);
+  border: 1px solid var(--color-ember-500);
+  background: var(--color-ember-500);
+  color: var(--color-abyss-950);
+  font-family: var(--font-ui);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle 80px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(251, 139, 36, 0.35),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity var(--duration-deliberate) var(--ease-ember);
+  pointer-events: none;
+}
+
+.btn:hover {
+  background: var(--color-ember-300);
+  border-color: var(--color-ember-300);
+  box-shadow: var(--glow-ember-strong);
+  transform: translateY(-2px);
+}
+
+.btn:hover::after {
+  opacity: 1;
+}
+
+.btn:active {
+  transform: translateY(0);
+  transition-duration: var(--duration-instant);
+}
+
+.btn.secondary {
+  border-color: rgba(154, 140, 115, 0.35);
+  background: transparent;
+  color: var(--color-parchment-100);
+}
+
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-gold-400);
+}
+
+.btn.danger {
+  border-color: rgba(158, 42, 43, 0.7);
+  background: rgba(158, 42, 43, 0.16);
+  color: var(--color-parchment-100);
+}
+
+.btn.danger:hover {
+  background: rgba(158, 42, 43, 0.28);
+  box-shadow: 0 0 22px rgba(158, 42, 43, 0.25);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  transform: none;
+  box-shadow: none;
+  filter: grayscale(0.6);
+}
+
+.icon-button {
+  width: 44px;
+  padding: 0;
+  border: var(--border-faint);
+  background: rgba(10, 9, 8, 0.35);
+  color: var(--color-parchment-300);
+}
+
+.icon-button:hover {
+  border-color: rgba(227, 100, 20, 0.45);
+  color: var(--color-ember-300);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PANELS: The Totumas (Vessels)
+   ───────────────────────────────────────────────────────────── */
+
+.panel {
+  position: relative;
+  overflow: hidden;
+  border: var(--border-faint);
+  border-radius: var(--radius-worn);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.024), transparent),
+    var(--color-abyss-700);
+  box-shadow: var(--shadow-artifact);
+}
+
+/* The top accent line: a gradient that shifts from Resonance 
+   (purple) through Ember (orange) to Gold. This is the 
+   "intentional dissonance" made visible — the vessel is not 
+   merely warm, it contains otherworldly energy. */
+.panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-resonance-400), var(--color-ember-500), var(--color-gold-500));
+  opacity: 0.85;
+}
+
+.panel-body {
+  padding: var(--space-5);
+}
+
+/* Variant: Monumental padding for hero/content panels */
+.panel-body.lofty {
+  padding: var(--space-7);
+}
+
+.panel-title {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+/* ─── Hero Panel ───
+   Asymmetric 55/45 split. The art side is dominant but not equal. */
+.hero-panel {
+  min-height: 420px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.82fr);
+  gap: var(--space-6);
+  align-items: stretch;
+}
+
+.hero-copy {
+  display: grid;
+  align-content: space-between;
+  gap: var(--space-6);
+  min-width: 0;
+  padding: var(--space-2) 0;
+}
+
+.hero-art {
+  overflow: hidden;
+  min-height: 360px;
+  border-left: var(--border-faint);
+  background: var(--color-abyss-950);
+  position: relative;
+}
+
+.hero-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 60%, rgba(10, 9, 8, 0.6));
+  pointer-events: none;
+}
+
+.hero-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.85) contrast(1.08) brightness(0.95);
+  transition: transform var(--duration-ritual) var(--ease-ember),
+              filter var(--duration-ritual) var(--ease-ember);
+}
+
+.hero-art:hover img {
+  transform: scale(1.03);
+  filter: saturate(0.95) contrast(1.1) brightness(1);
+}
+
+/* ─── Metric Strip ───
+   Four columns on desktop, but metrics are intentionally uneven 
+   in internal padding to create density variation. */
+.metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.metric {
+  min-height: 100px;
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  border: var(--border-faint);
+  border-radius: var(--radius-worn);
+  background: rgba(10, 9, 8, 0.35);
+  transition: border-color var(--duration-swift) var(--ease-ember),
+              box-shadow var(--duration-swift) var(--ease-ember);
+}
+
+.metric:hover {
+  border-color: rgba(227, 100, 20, 0.25);
+  box-shadow: var(--shadow-intimate);
+}
+
+.metric strong {
+  display: block;
+  margin-top: var(--space-3);
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  line-height: 1;
+  color: var(--color-parchment-100);
+}
+
+.metric .label {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+/* ─── Track / Progress ───
+   Tri-color gradient: Resonance → Ember → Gold.
+   This is the "Relationship Sync" made visually complex. */
+.track {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(154, 140, 115, 0.22);
+  border-radius: 999px;
+  background: rgba(5, 5, 4, 0.76);
+}
+
+.track-fill {
+  height: 100%;
+  width: var(--track-value, 0%);
+  background: linear-gradient(90deg, var(--color-resonance-400), var(--color-ember-500), var(--color-gold-500));
+  box-shadow: var(--glow-ember);
+  transition: width var(--duration-deliberate) var(--ease-ignite);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CARDS & LISTS
+   ───────────────────────────────────────────────────────────── */
+
+.card-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.item-card {
+  padding: var(--space-4);
+  border: var(--border-faint);
+  border-radius: var(--radius-worn);
+  background: rgba(10, 9, 8, 0.34);
+  transition: border-color var(--duration-swift) var(--ease-ember),
+              box-shadow var(--duration-swift) var(--ease-ember),
+              transform var(--duration-swift) var(--ease-ember);
+}
+
+.item-card:hover {
+  border-color: rgba(154, 140, 115, 0.3);
+  box-shadow: var(--shadow-intimate);
+  transform: translateY(-1px);
+}
+
+.item-card.is-live {
+  border-color: rgba(227, 100, 20, 0.55);
+  box-shadow: inset 0 0 20px rgba(227, 100, 20, 0.08), var(--glow-ember);
+  animation: ember-pulse 4s var(--ease-ember) infinite;
+}
+
+@keyframes ember-pulse {
+  0%, 100% {
+    box-shadow: inset 0 0 20px rgba(227, 100, 20, 0.08), 0 0 0 rgba(227, 100, 20, 0);
+  }
+  50% {
+    box-shadow: inset 0 0 24px rgba(227, 100, 20, 0.12), 0 0 18px rgba(227, 100, 20, 0.1);
+  }
+}
+
+.item-title {
+  margin: 0;
+  color: var(--color-parchment-100);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.item-copy,
+.muted,
+.meta {
+  color: var(--color-parchment-300);
+}
+
+.item-copy {
+  margin: var(--space-3) 0 0;
+  line-height: 1.6;
+  font-size: 0.98rem;
+}
+
+.meta {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+}
+
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 var(--space-3);
+  border: 1px solid rgba(154, 140, 115, 0.28);
+  border-radius: var(--radius-chipped);
+  color: var(--color-parchment-300);
+  background: rgba(5, 5, 4, 0.38);
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pill.hot {
+  border-color: rgba(227, 100, 20, 0.55);
+  color: var(--color-ember-300);
+  background: rgba(227, 100, 20, 0.08);
+}
+
+.pill.cool {
+  border-color: rgba(46, 111, 115, 0.58);
+  color: #8fd1d4;
+  background: rgba(46, 111, 115, 0.1);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FORMS
+   ───────────────────────────────────────────────────────────── */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.field.full {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  color: var(--color-gold-400);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(154, 140, 115, 0.28);
+  border-radius: var(--radius-worn);
+  background: rgba(5, 5, 4, 0.58);
+  color: var(--color-parchment-100);
+  padding: var(--space-3) var(--space-4);
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  transition: border-color var(--duration-swift) var(--ease-ember),
+              box-shadow var(--duration-swift) var(--ease-ember);
+}
+
+.field textarea {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+/* 
+   CRITICAL DISSONANCE: Focus states use Arcane Teal, not Ember.
+   This creates visual tension — the system responds with cold 
+   precision while user actions burn warm. It prevents the 
+   monotony of an all-orange interface.
+*/
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--color-arcane-300);
+  box-shadow: 
+    0 0 0 3px rgba(46, 111, 115, 0.12),
+    var(--glow-arcane);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: rgba(154, 140, 115, 0.45);
+  font-style: italic;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   LOGS & SCENES
+   ───────────────────────────────────────────────────────────── */
+
+.log-list {
+  display: grid;
+  gap: var(--space-5);
+  max-height: 640px;
+  overflow: auto;
+  padding-right: var(--space-3);
+}
+
+/* Custom scrollbar for webkit — thin, dark, ember thumb */
+.log-list::-webkit-scrollbar {
+  width: 6px;
+}
+.log-list::-webkit-scrollbar-track {
+  background: rgba(5, 5, 4, 0.3);
+  border-radius: 3px;
+}
+.log-list::-webkit-scrollbar-thumb {
+  background: rgba(227, 100, 20, 0.35);
+  border-radius: 3px;
+}
+.log-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(227, 100, 20, 0.55);
+}
+
+.turn-log {
+  border-left: 3px solid rgba(227, 100, 20, 0.7);
+  padding: var(--space-4) var(--space-5);
+  background: rgba(10, 9, 8, 0.28);
+  border-radius: 0 var(--radius-worn) var(--radius-worn) 0;
+  transition: background var(--duration-swift) var(--ease-ember),
+              border-color var(--duration-swift) var(--ease-ember);
+}
+
+.turn-log:hover {
+  background: rgba(10, 9, 8, 0.4);
+  border-left-color: var(--color-ember-500);
+}
+
+.turn-log pre,
+.prompt-output,
+.codebox,
+.scene-text {
+  white-space: pre-wrap;
+  overflow: auto;
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid rgba(154, 140, 115, 0.18);
+  border-radius: var(--radius-worn);
+  background: rgba(5, 5, 4, 0.58);
+  color: var(--color-parchment-100);
+  font-family: var(--font-ui);
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.scene-panel {
+  min-height: 540px;
+}
+
+.scene-text {
+  margin-top: var(--space-5);
+  max-height: none;
+  min-height: 400px;
+  font-family: var(--font-body);
+  font-size: 1.06rem;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+}
+
+.scene-scroll {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.scene-section {
+  padding: var(--space-5);
+  border: 1px solid rgba(154, 140, 115, 0.18);
+  border-radius: var(--radius-worn);
+  background: rgba(5, 5, 4, 0.48);
+  box-shadow: inset 0 0 18px rgba(227, 100, 20, 0.04);
+  transition: box-shadow var(--duration-swift) var(--ease-ember),
+              border-color var(--duration-swift) var(--ease-ember);
+}
+
+.scene-section:hover {
+  border-color: rgba(154, 140, 115, 0.28);
+  box-shadow: inset 0 0 22px rgba(227, 100, 20, 0.07);
+}
+
+.scene-section.is-muted {
+  display: none;
+}
+
+.scene-section-label {
+  display: block;
+  margin-bottom: var(--space-3);
+  color: var(--color-gold-400);
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.scene-section p,
+.scene-lead {
+  margin: 0;
+  color: var(--color-parchment-100);
+  font-size: 1.04rem;
+  line-height: 1.72;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CHOICES: The Crossroads
+   ───────────────────────────────────────────────────────────── */
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.choice-column {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.action-choice {
+  display: grid;
+  gap: var(--space-3);
+  min-height: 120px;
+  padding: var(--space-5);
+  border: 1px solid rgba(154, 140, 115, 0.25);
+  border-radius: var(--radius-worn);
+  background: rgba(10, 9, 8, 0.46);
+  color: var(--color-parchment-100);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 0 18px rgba(227, 100, 20, 0.04);
+  transition: border-color var(--duration-swift) var(--ease-ember),
+              background var(--duration-swift) var(--ease-ember),
+              box-shadow var(--duration-swift) var(--ease-ember),
+              transform var(--duration-swift) var(--ease-ember);
+}
+
+.action-choice:hover,
+.action-choice.is-selected {
+  border-color: rgba(227, 100, 20, 0.72);
+  background: rgba(227, 100, 20, 0.1);
+  box-shadow: var(--glow-ember), inset 0 0 18px rgba(227, 100, 20, 0.1);
+  transform: translateY(-2px);
+}
+
+.action-choice:active {
+  transform: translateY(0);
+  transition-duration: var(--duration-instant);
+}
+
+.action-choice strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.action-choice small,
+.action-choice span {
+  color: var(--color-parchment-300);
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   RITUAL GATE
+   ───────────────────────────────────────────────────────────── */
+
+.ritual-gate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-5);
+  align-items: start;
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  border: 1px solid rgba(227, 100, 20, 0.45);
+  border-radius: var(--radius-worn);
+  background:
+    linear-gradient(180deg, rgba(227, 100, 20, 0.12), rgba(10, 9, 8, 0.3)),
+    rgba(5, 5, 4, 0.55);
+  box-shadow: inset 0 0 18px rgba(227, 100, 20, 0.1);
+}
+
+.ritual-gate.is-complete {
+  border-color: rgba(118, 148, 106, 0.7);
+  background: rgba(118, 148, 106, 0.12);
+  box-shadow: inset 0 0 18px rgba(118, 148, 106, 0.1);
+}
+
+.ritual-gate h4 {
+  margin: var(--space-2) 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.ritual-gate p {
+  margin: 0;
+  color: var(--color-parchment-300);
+  line-height: 1.6;
+}
+
+.ritual-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 46px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(154, 140, 115, 0.28);
+  border-radius: var(--radius-worn);
+  background: rgba(5, 5, 4, 0.45);
+  color: var(--color-parchment-100);
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color var(--duration-swift) var(--ease-ember),
+              box-shadow var(--duration-swift) var(--ease-ember);
+}
+
+.ritual-check:hover {
+  border-color: rgba(227, 100, 20, 0.45);
+}
+
+.ritual-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-ember-500);
+  cursor: pointer;
+}
+
+.optional-write {
+  margin-top: var(--space-6);
+  border-top: var(--border-faint);
+  padding-top: var(--space-4);
+}
+
+.optional-write summary {
+  color: var(--color-gold-400);
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--duration-swift) var(--ease-ember);
+}
+
+.optional-write summary:hover {
+  color: var(--color-ember-300);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   UTILITY COMPONENTS
+   ───────────────────────────────────────────────────────────── */
+
+.btn-large {
+  min-height: 56px;
+  padding: 0 var(--space-6);
+  font-size: 0.82rem;
+}
+
+.prelude-body {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+
+.sheet-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: 1px solid rgba(227, 100, 20, 0.5);
+  border-radius: var(--radius-worn);
+  background: rgba(227, 100, 20, 0.09);
+  box-shadow: inset 0 0 18px rgba(227, 100, 20, 0.1);
+  color: var(--color-parchment-100);
+  text-decoration: none;
+  transition: transform var(--duration-swift) var(--ease-ember),
+              box-shadow var(--duration-swift) var(--ease-ember),
+              border-color var(--duration-swift) var(--ease-ember);
+}
+
+.sheet-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(227, 100, 20, 0.7);
+  box-shadow: inset 0 0 24px rgba(227, 100, 20, 0.15), var(--glow-ember);
+}
+
+.sheet-card span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-ember-300);
+  font-family: var(--font-ui);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sheet-card strong {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.sheet-card small,
+.prelude-check small {
+  color: var(--color-parchment-300);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.prompt-output {
+  min-height: 260px;
+  max-height: 540px;
+}
+
+.status-note {
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid rgba(154, 140, 115, 0.24);
+  border-radius: var(--radius-worn);
+  background: rgba(46, 111, 115, 0.12);
+  color: var(--color-parchment-300);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.status-note.warn {
+  border-color: rgba(227, 100, 20, 0.42);
+  background: rgba(227, 100, 20, 0.09);
+}
+
+.status-note.error {
+  border-color: rgba(158, 42, 43, 0.72);
+  background: rgba(158, 42, 43, 0.16);
+}
+
+/* ─── Companion Grid ─── */
+.companion-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.companion-symbol {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--space-4);
+  border: 1px solid rgba(154, 140, 115, 0.28);
+  border-radius: var(--radius-worn);
+  color: var(--color-ember-300);
+  background: rgba(227, 100, 20, 0.08);
+  transition: border-color var(--duration-swift) var(--ease-ember),
+              box-shadow var(--duration-swift) var(--ease-ember),
+              transform var(--duration-swift) var(--ease-ember);
+}
+
+.companion-symbol:hover {
+  border-color: rgba(227, 100, 20, 0.5);
+  box-shadow: var(--glow-ember);
+  transform: translateY(-2px);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.stat-box {
+  min-height: 80px;
+  padding: var(--space-4);
+  border: var(--border-faint);
+  border-radius: var(--radius-worn);
+  background: rgba(5, 5, 4, 0.35);
+  transition: border-color var(--duration-swift) var(--ease-ember);
+}
+
+.stat-box:hover {
+  border-color: rgba(154, 140, 115, 0.3);
+}
+
+.stat-box strong {
+  display: block;
+  margin-top: var(--space-2);
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.stat-box .stat-label {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+/* ─── Timing Game ─── */
+.timing-game {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.timing-track {
+  position: relative;
+  height: 48px;
+  overflow: hidden;
+  border: 1px solid rgba(154, 140, 115, 0.24);
+  border-radius: var(--radius-worn);
+  background:
+    linear-gradient(90deg, 
+      rgba(158, 42, 43, 0.45), 
+      rgba(227, 100, 20, 0.2), 
+      rgba(118, 148, 106, 0.55), 
+      rgba(227, 100, 20, 0.2), 
+      rgba(158, 42, 43, 0.45)
+    ),
+    rgba(5, 5, 4, 0.7);
+}
+
+.timing-target {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 46%;
+  width: 8%;
+  background: rgba(242, 233, 228, 0.14);
+  border-left: 1px solid rgba(242, 233, 228, 0.5);
+  border-right: 1px solid rgba(242, 233, 228, 0.5);
+}
+
+.timing-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--marker-x, 0%);
+  width: 4px;
+  transform: translateX(-2px);
+  background: var(--color-ember-300);
+  box-shadow: 0 0 20px rgba(251, 139, 36, 0.8);
+  transition: left var(--duration-swift) linear;
+}
+
+/* ─── File Browser ─── */
+.file-browser {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: var(--space-6);
+}
+
+.file-list {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.file-tab {
+  justify-content: flex-start;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-faint);
+  border-radius: var(--radius-worn);
+  background: rgba(5, 5, 4, 0.34);
+  color: var(--color-parchment-300);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--duration-swift) var(--ease-ember),
+              background var(--duration-swift) var(--ease-ember),
+              color var(--duration-swift) var(--ease-ember);
+}
+
+.file-tab.is-active {
+  border-color: rgba(227, 100, 20, 0.55);
+  color: var(--color-parchment-100);
+  background: rgba(227, 100, 20, 0.1);
+  box-shadow: inset 0 0 12px rgba(227, 100, 20, 0.06);
+}
+
+.file-tab:hover:not(.is-active) {
+  border-color: rgba(154, 140, 115, 0.4);
+  background: rgba(10, 9, 8, 0.5);
+}
+
+.empty-state {
+  padding: var(--space-7);
+  border: 1px dashed rgba(154, 140, 115, 0.3);
+  border-radius: var(--radius-worn);
+  color: var(--color-parchment-300);
+  text-align: center;
+  font-style: italic;
+}
+
+/* ─── Toast ───
+   Slides in from the right with an ember glow. */
+.toast {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  z-index: 100;
+  max-width: min(460px, calc(100vw - 32px));
+  padding: var(--space-5);
+  border: var(--border-lit);
+  border-radius: var(--radius-worn);
+  background: rgba(10, 9, 8, 0.96);
+  box-shadow: var(--shadow-artifact), var(--glow-ember);
+  color: var(--color-parchment-100);
+  font-family: var(--font-ui);
+  font-size: 0.86rem;
+  line-height: 1.55;
+  transform: translateX(120%);
+  transition: transform var(--duration-deliberate) var(--ease-ignite);
+}
+
+.toast.is-visible {
+  transform: translateX(0);
+}
+
+/* ─── Advanced Panel ─── */
+.advanced-panel {
+  display: block;
+  border: var(--border-faint);
+  border-radius: var(--radius-worn);
+  background: rgba(10, 9, 8, 0.3);
+  overflow: hidden;
+}
+
+.advanced-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  cursor: pointer;
+  color: var(--color-parchment-100);
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background var(--duration-swift) var(--ease-ember);
+}
+
+.advanced-summary:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.advanced-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.advanced-summary small {
+  color: var(--color-gold-400);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.advanced-summary::marker {
+  color: var(--color-ember-300);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE COMPONENT ADJUSTMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1120px) {
+  .hero-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-art {
+    min-height: 320px;
+    border-left: 0;
+    border-top: var(--border-faint);
+  }
+
+  .metric-strip,
+  .companion-grid,
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .file-browser {
+    grid-template-columns: 1fr;
+  }
+  
+  .choice-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .panel-body {
+    padding: var(--space-4);
+  }
+  
+  .panel-body.lofty {
+    padding: var(--space-5);
+  }
+
+  .metric-strip,
+  .companion-grid,
+  .stat-grid,
+  .choice-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ritual-gate {
+    grid-template-columns: 1fr;
+  }
+
+  .btn {
+    width: 100%;
+  }
+  
+  .toast {
+    right: var(--space-4);
+    bottom: var(--space-4);
+    left: var(--space-4);
+    max-width: none;
+  }
+}

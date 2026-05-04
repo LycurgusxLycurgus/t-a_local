@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Totumas & Aventuras</title>
+  <link rel="icon" href="./src/assets/favicon.svg" type="image/svg+xml">
+  
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- 
+    Typography: The Mythic-Technical Split
+    Cinzel  = Stone inscriptions, epic weight.
+    Lora    = Handwritten intimacy, narrative body.
+    JetBrains Mono = Ancient codex, ritual manual. 
+    We reject Inter (blacklisted generic SaaS font) in favor of 
+    monospace UI to create immediate distinctiveness.
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=JetBrains+Mono:wght@400;500;700;800&family=Lora:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="./src/css/tokens.css">
+  <link rel="stylesheet" href="./src/css/layout.css">
+  <link rel="stylesheet" href="./src/css/components.css">
+</head>
+<body>
+  <!-- Skip link for keyboard users -->
+  <a href="#main-content" class="skip-link">Skip to the Hearth</a>
+  
+  <div id="app" class="app-shell" aria-live="polite">
+    <!-- 
+      Loading Shell: The Ignition Ritual
+      The ember-mark pulses with a glow-breathe animation, 
+      suggesting a fire being stoked rather than a spinner.
+    -->
+    <div class="loading-shell" role="status" aria-label="Igniting the shared hearth">
+      <div class="ember-mark glow-breathe"></div>
+      <p>Opening the shared hearth...</p>
+    </div>
+  </div>
+  
+  <!-- Lucide icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script type="module" src="./src/js/app.js"></script>
+</body>
+</html>

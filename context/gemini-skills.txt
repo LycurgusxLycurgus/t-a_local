@@ -1,0 +1,2 @@
+https://github.com/google-gemini/gemini-skills/blob/main/skills/gemini-api-dev/SKILL.md
+https://raw.githubusercontent.com/google-gemini/gemini-skills/main/skills/gemini-api-dev/SKILL.md

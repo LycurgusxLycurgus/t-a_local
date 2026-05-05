@@ -3,15 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Totumas & Aventuras</title>
+  <title>Totumas & Aventuras | Vanaheim Session</title>
   <link rel="icon" href="./src/assets/favicon.svg" type="image/svg+xml">
   
   <!-- Preconnect for performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Fira+Code:wght@400;700&family=Inter:wght@400;600;800&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <!-- Epic, Lore, Mech, and Code Fots -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;600;800&family=Fira+Code:wght@400;700&display=swap" rel="stylesheet">
   
+  <!-- Thematic Styles -->
   <link rel="stylesheet" href="./src/css/tokens.css">
   <link rel="stylesheet" href="./src/css/layout.css">
   <link rel="stylesheet" href="./src/css/components.css">
@@ -22,17 +24,16 @@
   
   <div id="app" class="app-shell" aria-live="polite">
     <!-- 
-      Loading Shell: The Ignition Ritual
-      The ember-mark pulses with a glow-breathe animation, 
-      suggesting a fire being stoked rather than a spinner.
+      Loading Shell: The Ignition Ritual. 
+      Uses the new ember-mark aesthetics.
     -->
     <div class="loading-shell" role="status" aria-label="Igniting the shared hearth">
       <div class="ember-mark glow-breathe"></div>
-      <p>Opening the shared hearth...</p>
+      <p class="mech-text" style="color: var(--color-gold-400); margin-top: 24px; letter-spacing: 0.2em; text-transform: uppercase;">Igniting the shared hearth...</p>
     </div>
   </div>
   
-  <!-- Lucide icons -->
+  <!-- Lucide icons (kept for compatibility, though styled to fit the forged UI) -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script type="module" src="./src/js/app.js"></script>
 </body>

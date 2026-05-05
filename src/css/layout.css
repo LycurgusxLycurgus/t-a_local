@@ -1,201 +1,265 @@
-.layout,
-.app-table {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+/* ==========================================================================
+   RESET & GLOBAL (The Tabletop)
+   ========================================================================== */
+   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-.global-nav {
-  position: relative;
-  z-index: 100;
-  display: grid;
-  grid-template-columns: minmax(230px, auto) minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: 64px;
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--color-abyss-500);
-  background:
-    radial-gradient(circle at 50% 0%, rgba(227, 100, 20, 0.06), transparent 72%),
-    var(--color-abyss-900);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.62);
-}
+   html {
+     min-height: 100vh;
+     background-color: var(--color-abyss-900);
+     background-image: 
+       radial-gradient(circle at 50% 100%, rgba(227, 100, 20, 0.08) 0%, transparent 60%),
+       url('https://www.transparenttextures.com/patterns/dark-leather.png');
+     background-repeat: repeat;
+     background-attachment: fixed;
+   }
+   
+   body {
+     min-height: 100vh;
+     overflow-x: hidden;
+     overflow-y: auto;
+     background-color: var(--color-abyss-900);
+     background-image: 
+       radial-gradient(circle at 50% 100%, rgba(227, 100, 20, 0.08) 0%, transparent 60%),
+       url('https://www.transparenttextures.com/patterns/dark-leather.png'); /* Physical texture */
+     background-repeat: repeat;
+     background-attachment: fixed;
+     color: var(--color-parchment-100);
+     font-family: var(--font-lore);
+     line-height: 1.6;
+     display: flex;
+     flex-direction: column;
+   }
 
-.nav-brand {
-  display: grid;
-  gap: 2px;
-  color: var(--color-gold-400);
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  line-height: 1.1;
-  text-transform: uppercase;
-}
+   #app,
+   .app-shell {
+     min-height: 100vh;
+     height: auto;
+   }
+   
+   /* Thematic Scrollbars */
+   ::-webkit-scrollbar { width: 6px; height: 6px; }
+   ::-webkit-scrollbar-track { background: var(--color-abyss-900); }
+   ::-webkit-scrollbar-thumb { background: var(--color-abyss-500); border-radius: 0; }
+   ::-webkit-scrollbar-thumb:hover { background: var(--color-gold-400); }
+   
+   .layout, .app-table {
+     min-height: 100vh;
+     height: auto;
+     display: flex;
+     flex-direction: column;
+     background: transparent;
+   }
+   
+   /* ==========================================================================
+      GLOBAL NAVIGATION
+      ========================================================================== */
+   .global-nav {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     padding: var(--space-2) var(--space-4);
+     background: var(--color-abyss-900);
+     border-bottom: 1px solid var(--color-abyss-500);
+     box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+     z-index: 100;
+   }
+   
+   .nav-brand {
+     display: flex;
+     flex-direction: column;
+   }
+   
+   .nav-brand span {
+     font-family: var(--font-epic);
+     font-size: 1.2rem;
+     color: var(--color-gold-400);
+     letter-spacing: 0.1em;
+     text-transform: uppercase;
+   }
+   
+   .nav-brand small {
+     font-family: var(--font-mech);
+     font-size: 0.65rem;
+     color: var(--color-parchment-400);
+     text-transform: uppercase;
+     letter-spacing: 0.1em;
+   }
+   
+   .nav-links, .nav-actions {
+     display: flex;
+     gap: var(--space-4);
+     align-items: center;
+   }
+   
+   /* ==========================================================================
+      VIEWS AND GRIDS
+      ========================================================================== */
+   .main, .app-view {
+     flex: 1;
+     min-height: 0;
+     display: none;
+     overflow: visible;
+     padding: var(--space-4);
+   }
+   
+   .app-view.active {
+     display: flex;
+     flex-direction: column;
+     animation: fadeIn var(--duration-deliberate) ease-out;
+   }
+   
+   @keyframes fadeIn { 
+     from { opacity: 0; transform: translateY(5px); } 
+     to { opacity: 1; transform: translateY(0); } 
+   }
+   
+   .screen {
+     width: min(100%, 1400px);
+     margin: 0 auto;
+     display: flex;
+     flex-direction: column;
+     gap: var(--space-4);
+     padding-bottom: var(--space-6);
+   }
 
-.nav-brand small {
-  max-width: 290px;
-  overflow: hidden;
-  color: var(--color-parchment-400);
-  font-family: var(--font-body);
-  font-size: 0.78rem;
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-overflow: ellipsis;
-  text-transform: none;
-  white-space: nowrap;
-}
+   .skip-link {
+     position: absolute;
+     top: -120px;
+     left: var(--space-3);
+     z-index: 1000;
+     padding: var(--space-2) var(--space-3);
+     background: var(--color-abyss-900);
+     border: var(--border-lit);
+     color: var(--color-ember-300);
+     font-family: var(--font-mech);
+     font-size: 0.8rem;
+     text-transform: uppercase;
+     letter-spacing: 0.1em;
+   }
 
-.nav-links,
-.nav-actions,
-.topbar-actions,
-.cluster {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
+   .skip-link:focus {
+     top: var(--space-3);
+   }
+   
+   /* Utility Grids */
+   .grid { display: grid; gap: var(--space-4); }
+   .grid.two { grid-template-columns: 1fr 1fr; }
+   .dash-grid { grid-template-columns: 2fr 1fr; }
+   .form-grid { grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+   .field.full { grid-column: 1 / -1; }
 
-.nav-links {
-  justify-content: center;
-  flex-wrap: wrap;
-}
+   .screen-header {
+     display: flex;
+     justify-content: space-between;
+     align-items: flex-end;
+     gap: var(--space-4);
+   }
+   
+   /* ==========================================================================
+      THE COCKPIT (Campaign Play specific layout)
+      ========================================================================== */
+   .combat-screen {
+     padding: 0;
+     max-width: 100%;
+     height: calc(100vh - 60px); /* Fill remaining space below nav */
+     margin: 0;
+   }
+   
+   .cockpit-hud {
+     display: flex;
+     justify-content: space-between;
+     background: var(--color-abyss-700);
+     padding: var(--space-2) var(--space-4);
+     border-bottom: 1px solid var(--color-abyss-500);
+     box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+     z-index: 10;
+   }
+   
+   .cockpit-core {
+     flex: 1;
+     display: grid;
+     grid-template-columns: 320px 1fr 320px;
+     grid-template-rows: 1fr auto;
+     grid-template-areas: 
+         "left center right"
+         "bottom bottom bottom";
+     gap: 2px; /* Forged plates resting tight against each other */
+     background: var(--color-abyss-900);
+     overflow: hidden;
+   }
+   
+   .cockpit-left { 
+     grid-area: left; 
+     background: var(--color-abyss-700); 
+     padding: var(--space-3); 
+     border-right: 1px solid var(--color-abyss-500); 
+     overflow-y: auto; 
+     display: flex; 
+     flex-direction: column; 
+     gap: var(--space-3); 
+   }
+   
+   .cockpit-center { 
+     grid-area: center; 
+     background: var(--color-abyss-900); 
+     box-shadow: var(--shadow-recessed);
+     display: flex;
+     flex-direction: column;
+     position: relative;
+   }
+   
+   .cockpit-right { 
+     grid-area: right; 
+     background: var(--color-abyss-700); 
+     padding: var(--space-3); 
+     border-left: 1px solid var(--color-abyss-500); 
+     overflow-y: auto; 
+     display: flex; 
+     flex-direction: column; 
+     gap: var(--space-3); 
+   }
+   
+   .cockpit-bottom {
+     grid-area: bottom;
+     background: var(--color-abyss-900);
+     border-top: 1px solid var(--color-abyss-500);
+     padding: var(--space-3) var(--space-4);
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     gap: var(--space-4);
+     box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+     z-index: 20;
+   }
 
-.nav-actions {
-  justify-content: flex-end;
-}
+   @media (max-width: 1120px) {
+     body {
+       overflow: auto;
+     }
 
-.main,
-.app-view {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: var(--space-4);
-}
+     #app,
+     .app-shell,
+     .layout,
+     .app-table {
+       min-height: 100vh;
+       height: auto;
+     }
 
-.screen {
-  width: min(100%, 1280px);
-  margin: 0 auto;
-}
+     .main,
+     .app-view {
+       overflow: visible;
+     }
 
-.screen-header {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin: var(--space-3) 0 var(--space-5);
-}
+     .global-nav,
+     .nav-links,
+     .nav-actions {
+       flex-wrap: wrap;
+       justify-content: flex-start;
+     }
 
-.screen-title {
-  margin: var(--space-2) 0 0;
-  color: var(--color-parchment-100);
-  font-family: var(--font-display);
-  font-size: clamp(2.4rem, 6.2vw, 4.8rem);
-  font-weight: 900;
-  letter-spacing: 0.03em;
-  line-height: 0.95;
-  text-transform: uppercase;
-}
-
-.screen-copy {
-  max-width: 850px;
-  margin: var(--space-3) 0 0;
-  color: var(--color-parchment-400);
-  font-size: 1.08rem;
-  line-height: 1.65;
-}
-
-.grid {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.grid.two {
-  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
-}
-
-.grid.three {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.grid.four {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.stack {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.split {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-
-.field.full {
-  grid-column: 1 / -1;
-}
-
-.mobile-only {
-  display: none;
-}
-
-@media (max-width: 1180px) {
-  body {
-    overflow: auto;
-  }
-
-  .global-nav {
-    grid-template-columns: 1fr;
-  }
-
-  .nav-links,
-  .nav-actions {
-    justify-content: flex-start;
-  }
-
-  .main,
-  .app-view {
-    overflow: visible;
-  }
-
-  .grid.two,
-  .grid.three,
-  .grid.four {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px) {
-  .main,
-  .app-view {
-    padding: var(--space-3);
-  }
-
-  .screen-header,
-  .split,
-  .nav-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .screen-title {
-    font-size: clamp(2rem, 13vw, 3.2rem);
-  }
-
-  .mobile-only {
-    display: initial;
-  }
-}
+     .grid.two,
+     .dash-grid,
+     .form-grid {
+       grid-template-columns: 1fr;
+     }
+   }

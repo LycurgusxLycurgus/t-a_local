@@ -1439,7 +1439,16 @@
 
     create the new frontend for this app based on your previous generated html
 
+    create everything in two turns, first turn the html and css and second turn the js alone (so you don't get constraint by your output limit)
+    
+    YOUR_HTML
+    [PASTED GENERATED HTML]
+    END_YOUR HTML
+
     [PASTED CURRENT FILES]
+
+    # FOLLOW UP (turn 2)
+        looks, great, continue to turn 2
 
 
 

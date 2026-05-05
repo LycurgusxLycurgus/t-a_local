@@ -26,6 +26,8 @@ let ui = {
   advancedOpen: false,
   setupTitle: "",
   setupSeed: "",
+  setupForm: {},
+  setupClasses: {},
   selectedActions: {},
   customActions: {},
   ritualComplete: false,
@@ -76,6 +78,10 @@ function options(items, selected) {
   return items.map((item) => `<option value="${escapeHtml(item)}" ${item === selected ? "selected" : ""}>${escapeHtml(item)}</option>`).join("");
 }
 
+function setupValue(name, fallback = "") {
+  return ui.setupForm[name] ?? fallback;
+}
+
 function normalizeText(value) {
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 }
@@ -105,23 +111,24 @@ function render() {
   bindEvents();
   applyVisualEnhancements();
   if (window.lucide) window.lucide.createIcons();
+  centerSelectedForgeClasses();
 }
 
 function applyVisualEnhancements() {
   document.documentElement.classList.remove("no-js");
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
   document.body.classList.toggle("reduced-motion", reducedMotion);
-  document.querySelectorAll(".btn").forEach((button) => {
-    button.addEventListener("mousemove", (event) => {
-      const rect = button.getBoundingClientRect();
-      button.style.setProperty("--mouse-x", `${((event.clientX - rect.left) / rect.width) * 100}%`);
-      button.style.setProperty("--mouse-y", `${((event.clientY - rect.top) / rect.height) * 100}%`);
-    });
-    button.addEventListener("mouseleave", () => {
-      button.style.setProperty("--mouse-x", "50%");
-      button.style.setProperty("--mouse-y", "50%");
-    });
+}
+
+function centerSelectedForgeClasses() {
+  document.querySelectorAll(".forge-class-rail input:checked").forEach((input) => {
+    const token = input.closest(".forge-class-token");
+    const rail = input.closest(".forge-class-rail");
+    if (!token || !rail) return;
+    const targetLeft = token.offsetLeft - (rail.clientWidth - token.clientWidth) / 2;
+    rail.scrollLeft = Math.max(0, targetLeft);
   });
+  window.scrollTo({ left: 0, top: window.scrollY });
 }
 
 function initGlobalUx() {
@@ -142,11 +149,11 @@ function initGlobalUx() {
 
 function renderGlobalNav(campaign) {
   const items = [
-    ["dashboard", "layout-dashboard", "Dashboard"],
-    ["setup", "scroll", "Forge"],
-    ["play", "swords", "Play"],
-    ["rituals", "flame-kindling", "Rituals"],
-    ["epicurogotchi", "egg", "Epicurogotchi"],
+    ["dashboard", "layout-dashboard", "The Hearth"],
+    ["setup", "hammer", "Forge"],
+    ["play", "swords", "Crucible"],
+    ["rituals", "book-open", "Tome"],
+    ["epicurogotchi", "egg", "Artifact"],
     ["memory", "folder-open", "Memory"],
     ["bridgecrux", "route", "Bridgecrux"]
   ];
@@ -164,33 +171,14 @@ function renderGlobalNav(campaign) {
         `).join("")}
       </div>
       <div class="nav-actions">
-        <button class="btn btn-secondary" data-action="export-state">${icon("download")} Export</button>
-        <label class="btn btn-secondary">
+        <button class="btn secondary" data-action="export-state" style="padding: 0 12px; min-height: 32px; font-size: 0.7rem;">${icon("download")} Export</button>
+        <label class="btn secondary" style="padding: 0 12px; min-height: 32px; font-size: 0.7rem; cursor: pointer;">
           ${icon("upload")} Import
           <input data-action="import-state" type="file" accept="application/json" hidden>
         </label>
-        <button class="btn btn-secondary" data-action="save-state">${icon("save")} Save</button>
+        <button class="btn secondary" data-action="save-state" style="padding: 0 12px; min-height: 32px; font-size: 0.7rem;">${icon("save")} Save</button>
       </div>
     </nav>
-  `;
-}
-
-function renderTopbar(campaign) {
-  return `
-    <div class="topbar">
-      <div>
-        <span class="eyebrow">Vanaheim session</span>
-        <div class="meta">${campaign ? `${escapeHtml(campaign.phase)} - ${escapeHtml(campaign.status)}` : "Create a campaign to open the table."}</div>
-      </div>
-      <div class="topbar-actions">
-        <button class="btn secondary" data-action="export-state">${icon("download")} Export</button>
-        <label class="btn secondary">
-          ${icon("upload")} Import
-          <input data-action="import-state" type="file" accept="application/json" hidden>
-        </label>
-        <button class="btn ghost" data-action="save-state">${icon("save")} Save</button>
-      </div>
-    </div>
   `;
 }
 
@@ -207,21 +195,25 @@ function renderScreen(campaign) {
   return (screens[ui.view] || screens.dashboard)();
 }
 
+/* ==========================================================================
+   VIEWS
+   ========================================================================== */
+
 function renderDashboard(campaign) {
   const pet = getActiveEpicurogotchi(state);
   const progress = campaign ? Math.round((campaign.turnNumber / campaign.maxTurns) * 100) : 0;
   return `
     <section class="screen">
-      <div class="panel hero-panel">
-        <div class="panel-body hero-copy">
+      <div class="plate active-plate hero-panel">
+        <div class="hero-copy">
           <div>
-            <span class="eyebrow">Shared hearth</span>
-            <h2 class="screen-title">${campaign ? escapeHtml(campaign.title) : "Open the First Totuma"}</h2>
-            <p class="screen-copy">${campaign ? "A fast campaign engine for tactical turns, diegetic out-game missions, and Epicurogotchi growth." : "Create a campaign, choose classes, and let the code prepare a compact GM context."}</p>
+            <span class="label">Shared hearth</span>
+            <h2 class="screen-title" style="border: none;">${campaign ? escapeHtml(campaign.title) : "Open the First Totuma"}</h2>
+            <p class="lore-text" style="font-size: 1.2rem; margin-top: var(--space-2);">${campaign ? "A fast campaign engine for tactical turns, diegetic out-game missions, and Epicurogotchi growth." : "Create a campaign, choose classes, and let the code prepare a compact GM context."}</p>
           </div>
           <div class="stack">
-            <div class="track" aria-label="Campaign progress"><div class="track-fill" style="--track-value:${progress}%"></div></div>
-            <div class="metric-strip">
+            <div class="resource-track" aria-label="Campaign progress"><div class="resource-fill hp-juanete" style="width:${progress}%"></div></div>
+            <div class="metric-strip" style="margin-top: var(--space-2);">
               ${metric("Turn", campaign ? `${campaign.turnNumber}/${campaign.maxTurns}` : "0/20")}
               ${metric("Phase", campaign ? campaign.phase : "setup")}
               ${metric("Piccolo", `Lv ${pet.level}`)}
@@ -233,46 +225,131 @@ function renderDashboard(campaign) {
           <img src="${escapeHtml(pet.image)}" alt="Piccolo Epicurogotchi">
         </div>
       </div>
-      <div class="grid two" style="margin-top: var(--space-5);">
+      
+      <div class="grid two" style="margin-top: var(--space-4);">
         ${renderActiveMission(campaign)}
         ${renderCharacters()}
       </div>
-      <div class="panel" style="margin-top: var(--space-5);">
-        <div class="panel-body">
-          <div class="split">
-            <div>
-              <span class="eyebrow">Vanaheim companions</span>
-              <h3 class="panel-title">Sphere pressure map</h3>
-            </div>
-            <button class="btn secondary" data-view="play">${icon("swords")} Open Play</button>
+      
+      <div class="plate" style="margin-top: var(--space-4);">
+        <div class="split">
+          <div>
+            <span class="label">Vanaheim companions</span>
+            <h3 class="panel-title">Sphere pressure map</h3>
           </div>
-          ${renderCompanions()}
+          <button class="btn" data-view="play">${icon("swords")} Open Crucible</button>
         </div>
+        ${renderCompanions()}
       </div>
     </section>
   `;
 }
 
 function metric(label, value) {
-  return `<div class="metric"><span class="stat-label">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+  return `<div class="stat-box"><span class="label">${escapeHtml(label)}</span><strong class="stat-val">${escapeHtml(value)}</strong></div>`;
+}
+
+function classStatPills(profile) {
+  return Object.entries(profile)
+    .filter(([key]) => ["Fuerza", "Inteligencia", "Carisma", "Magnetismo"].includes(key))
+    .map(([key, value]) => `<span class="pill">${escapeHtml(key.substring(0, 3).toUpperCase())} ${escapeHtml(value)}</span>`)
+    .join("");
+}
+
+function classRail(playerKey, selectedClass) {
+  const railIcons = ["flame", "shield", "wand-sparkles", "swords", "sparkles", "crosshair", "hammer", "skull"];
+  return `
+    <div class="forge-class-rail" role="radiogroup" aria-label="${escapeHtml(playerKey)} class">
+      ${CLASS_NAMES.map((name, index) => {
+        const profile = CLASS_TABLE[name];
+        const checked = name === selectedClass;
+        return `
+          <label class="forge-class-token ${checked ? "is-selected" : ""}">
+            <input type="radio" name="${escapeHtml(playerKey)}Class" value="${escapeHtml(name)}" ${checked ? "checked" : ""}>
+            ${icon(railIcons[index % railIcons.length])}
+            <span>${escapeHtml(name)}</span>
+            <small>${escapeHtml(profile.resource)}</small>
+          </label>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderHeroForgeSlot(playerName, playerKey, selectedClass) {
+  const profile = CLASS_TABLE[selectedClass] || CLASS_TABLE[CLASS_NAMES[0]];
+  const hpPreview = Math.max(12, Math.min(18, Math.round((profile.Fuerza + profile.Magnetismo) / 2)));
+  const crestIcon = playerKey === "juanete" ? "music-2" : "anvil";
+  return `
+    <section class="forge-hero-slot ${playerKey}">
+      <div class="forge-hero-main">
+        <div class="forge-crest">${icon(crestIcon)}</div>
+        <div class="forge-hero-copy">
+          <span class="label">Hero vessel</span>
+          <h3>${escapeHtml(playerName)}</h3>
+          <p class="meta">Class</p>
+          <strong>${escapeHtml(selectedClass)}</strong>
+          <p class="lore-text">${escapeHtml(profile.resource)} - ${escapeHtml(profile.tendency)}</p>
+          <div class="pill-row">${classStatPills(profile)}</div>
+        </div>
+        <div class="forge-hp-preview">
+          <span class="label">HP Preview</span>
+          <strong>${hpPreview} / 15</strong>
+          <div class="resource-track"><div class="resource-fill" style="width:${Math.min(100, Math.round((hpPreview / 15) * 100))}%"></div></div>
+          <div class="forge-stat-grid">
+            <span><b>FUE</b>${escapeHtml(profile.Fuerza)}</span>
+            <span><b>INT</b>${escapeHtml(profile.Inteligencia)}</span>
+            <span><b>CAR</b>${escapeHtml(profile.Carisma)}</span>
+            <span><b>MAG</b>${escapeHtml(profile.Magnetismo)}</span>
+          </div>
+        </div>
+      </div>
+      ${classRail(playerKey, selectedClass)}
+    </section>
+  `;
+}
+
+function renderMandatoryRitualDrawer(campaign) {
+  const selected = campaign?.mandatoryRitualIds || [];
+  return `
+    <section class="forge-ritual-drawer">
+      <div class="split">
+        <div>
+          <span class="label">Mandatory campaign rituals</span>
+          <p class="meta">Pick the rituals that must appear somewhere in the campaign map.</p>
+        </div>
+        <span class="pill hot" data-ritual-count>${selected.length} selected</span>
+      </div>
+      <div class="forge-ritual-grid">
+        ${state.ritualPools.map((ritual) => {
+          const checked = selected.includes(ritual.id);
+          return `
+            <label class="forge-ritual-chip ${checked ? "is-selected" : ""}">
+              <input type="checkbox" name="mandatoryRitualIds" value="${escapeHtml(ritual.id)}" ${checked ? "checked" : ""}>
+              ${icon(ritual.size === "macro" ? "orbit" : "badge")}
+              <span>${escapeHtml(ritual.title)} <small>${escapeHtml(ritual.size)} / ${escapeHtml(ritual.sphere)}</small></span>
+            </label>
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
 }
 
 function renderActiveMission(campaign) {
   const mission = campaign?.activeOutGameMission;
   return `
-    <div class="panel">
-      <div class="panel-body">
-        <span class="eyebrow">Out-game mission</span>
-        <h3 class="panel-title">${mission ? escapeHtml(mission.ritual.title) : "None active"}</h3>
-        ${mission ? `
-          <p class="item-copy">${escapeHtml(mission.ritual.description)}</p>
-          <div class="pill-row">
-            <span class="pill hot">${mission.completed ? "completed" : mission.status}</span>
-            <span class="pill">${mission.ritual.size}</span>
-            <span class="pill cool">${mission.ritual.sphere}</span>
-          </div>
-        ` : `<p class="item-copy">Combat encounters will always require a micro or macro ritual before advancement.</p>`}
-      </div>
+    <div class="plate">
+      <span class="label">Out-game mission</span>
+      <h3 class="panel-title">${mission ? escapeHtml(mission.ritual.title) : "None active"}</h3>
+      ${mission ? `
+        <p class="lore-text" style="margin-top: var(--space-2);">${escapeHtml(mission.ritual.description)}</p>
+        <div class="pill-row">
+          <span class="pill ${mission.completed ? "hot" : "danger"}">${mission.completed ? "completed" : mission.status}</span>
+          <span class="pill">${mission.ritual.size}</span>
+          <span class="pill cool">${mission.ritual.sphere}</span>
+        </div>
+      ` : `<p class="lore-text" style="margin-top: var(--space-2);">Combat encounters will always require a micro or macro ritual before advancement.</p>`}
     </div>
   `;
 }
@@ -280,36 +357,29 @@ function renderActiveMission(campaign) {
 function renderCharacters() {
   const pcs = [state.characters.juanete, state.characters.ironmole].filter(Boolean);
   return `
-    <div class="panel">
-      <div class="panel-body">
-        <span class="eyebrow">Player characters</span>
-        <h3 class="panel-title">Juanete / Ironmole</h3>
-        <div class="card-list" style="margin-top: var(--space-4);">
-          ${pcs.length ? pcs.map(renderCharacterCard).join("") : `<div class="empty-state">No classes selected yet.</div>`}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderCharacterCard(pc) {
-  return `
-    <div class="item-card">
-      <div class="split">
-        <div>
-          <h4 class="item-title">${escapeHtml(pc.name)} - ${escapeHtml(pc.className)}</h4>
-          <p class="meta">${escapeHtml(pc.resource)} / ${escapeHtml(pc.tendency)}</p>
-        </div>
-        <span class="pill hot">HP ${pc.hp}/${pc.maxHp}</span>
-      </div>
-      <div class="stat-grid" style="margin-top: var(--space-3);">
-        ${Object.entries(pc.stats).map(([stat, value]) => `
-          <div class="stat-box">
-            <span class="stat-label">${escapeHtml(stat)}</span>
-            <strong>${value}</strong>
-            <span class="meta">mod ${modifierFor(value) >= 0 ? "+" : ""}${modifierFor(value)}</span>
+    <div class="plate">
+      <span class="label">Player characters</span>
+      <h3 class="panel-title">Juanete / Ironmole</h3>
+      <div class="card-list" style="margin-top: var(--space-4);">
+        ${pcs.length ? pcs.map((pc, idx) => `
+          <div class="hero-card ${idx === 1 ? 'ironmole' : ''}">
+            <div class="split">
+              <div>
+                <h4 class="item-title">${escapeHtml(pc.name)} - ${escapeHtml(pc.className)}</h4>
+                <p class="meta">${escapeHtml(pc.resource)} / ${escapeHtml(pc.tendency)}</p>
+              </div>
+              <span class="pill hot">HP ${pc.hp}/${pc.maxHp}</span>
+            </div>
+            <div class="stat-grid" style="margin-top: var(--space-3); grid-template-columns: repeat(4, 1fr);">
+              ${Object.entries(pc.stats).map(([stat, value]) => `
+                <div class="stat-box" style="padding: var(--space-1);">
+                  <span class="label">${escapeHtml(stat).substring(0,3)}</span>
+                  <strong class="stat-val" style="font-size: 1.1rem; margin-top: 2px;">${value}</strong>
+                </div>
+              `).join("")}
+            </div>
           </div>
-        `).join("")}
+        `).join("") : `<div class="empty-state">No classes selected yet.</div>`}
       </div>
     </div>
   `;
@@ -323,10 +393,9 @@ function renderCompanions() {
         const sphere = SPHERES.find((item) => item.id === companion.sphere);
         return `
           <div class="item-card">
-            <div class="companion-symbol">${icon(sphere?.icon || "sparkle")}</div>
-            <h4 class="item-title">${escapeHtml(companion.name)}</h4>
-            <p class="meta">${escapeHtml(companion.sphere)} - Lv ${companion.level}</p>
-            <p class="item-copy">${escapeHtml(companion.notes)}</p>
+            <h4 class="item-title" style="color: var(--color-gold-400);">${icon(sphere?.icon || "sparkle")} ${escapeHtml(companion.name)}</h4>
+            <p class="meta" style="margin-top: 4px;">${escapeHtml(companion.sphere)} - Lv ${companion.level}</p>
+            <p class="lore-text" style="font-size: 0.85rem; margin-top: var(--space-2);">${escapeHtml(companion.notes)}</p>
           </div>
         `;
       }).join("")}
@@ -335,85 +404,58 @@ function renderCompanions() {
 }
 
 function renderSetup(campaign) {
+  const selectedJuanete = ui.setupClasses.juanete || setupValue("juaneteClass", campaign?.selectedClasses?.juanete || "Bardo");
+  const selectedIronmole = ui.setupClasses.ironmole || setupValue("ironmoleClass", campaign?.selectedClasses?.ironmole || "Artificiero");
   return `
-    <section class="screen">
-      <div class="screen-header">
-        <div>
-          <span class="eyebrow">Campaign setup</span>
+    <section class="screen forge-screen">
+      <form class="forge-console" data-form="campaign-setup">
+        <div class="forge-crown" aria-hidden="true">${icon("hammer")}</div>
+        <header class="forge-heading">
+          <span class="label">Campaign setup</span>
           <h2 class="screen-title">Forge a Run</h2>
-          <p class="screen-copy">The app calculates base stats and act shape. The GM gets a compact context and creates flavor, subclasses, consequences, and Vanaheim pressure.</p>
-        </div>
-      </div>
-      <div class="grid two">
-        <form class="panel" data-form="campaign-setup">
-          <div class="panel-body form-grid">
-            <div class="field full">
-              <label for="title">Campaign title</label>
-              <input id="title" name="title" value="${escapeHtml(ui.setupTitle || campaign?.title || "The First Totuma")}" maxlength="80">
-            </div>
-            <div class="field">
-              <label for="mode">Campaign type</label>
-              <select id="mode" name="mode">${options(["canon", "rogue-crossover", "free-weird-run"], campaign?.mode || "canon")}</select>
-            </div>
-            <div class="field">
-              <label for="maxTurns">Target turns</label>
-              <select id="maxTurns" name="maxTurns">${options(["20", "24"], String(campaign?.maxTurns || 20))}</select>
-            </div>
-            <div class="field">
-              <label for="intensity">Combat intensity</label>
-              <select id="intensity" name="intensity">${options(["normal", "chaotic", "boss-heavy"], campaign?.intensity || "normal")}</select>
-            </div>
-            <div class="field">
-              <label for="combatWeight">Combat weight</label>
-              <input id="combatWeight" name="combatWeight" type="number" min="50" max="95" value="${campaign?.combatWeight || 80}">
-            </div>
-            <div class="field">
-              <label for="juaneteClass">Juanete class</label>
-              <select id="juaneteClass" name="juaneteClass">${options(CLASS_NAMES, campaign?.selectedClasses?.juanete || "Bardo")}</select>
-            </div>
-            <div class="field">
-              <label for="ironmoleClass">Ironmole class</label>
-              <select id="ironmoleClass" name="ironmoleClass">${options(CLASS_NAMES, campaign?.selectedClasses?.ironmole || "Artificiero")}</select>
-            </div>
-            <div class="field full">
-              <label for="seed">Campaign seed</label>
-              <textarea id="seed" name="seed" placeholder="Image, relic, mood, crossover, problem, or desire to test.">${escapeHtml(ui.setupSeed || campaign?.seed || "")}</textarea>
-            </div>
-            <div class="field full">
-              <button class="btn secondary" type="button" data-action="random-seed" ${ui.seedBusy ? "disabled" : ""}>${icon("shuffle")} ${ui.seedBusy ? "Generando..." : "Generar semilla"}</button>
-            </div>
-            <div class="field full ritual-picker">
-              <label>Mandatory campaign rituals</label>
-              <div class="ritual-check-grid">
-                ${state.ritualPools.map((ritual) => `
-                  <label class="mini-check">
-                    <input type="checkbox" name="mandatoryRitualIds" value="${escapeHtml(ritual.id)}" ${(campaign?.mandatoryRitualIds || []).includes(ritual.id) ? "checked" : ""}>
-                    <span>${escapeHtml(ritual.title)} <small>${escapeHtml(ritual.size)} / ${escapeHtml(ritual.sphere)}</small></span>
-                  </label>
-                `).join("")}
-              </div>
-            </div>
-            <div class="field full">
-              <button class="btn" type="submit" ${ui.mapBusy ? "disabled" : ""}>${icon("hammer")} ${ui.mapBusy ? "Creando mapa..." : "Create / Replace Active Campaign"}</button>
-            </div>
+        </header>
+
+        <section class="forge-control-band" aria-label="Campaign controls">
+          <div class="field forge-title-field">
+            <label for="title">Campaign title</label>
+            <input id="title" name="title" value="${escapeHtml(ui.setupTitle || campaign?.title || "The First Totuma")}" maxlength="80">
           </div>
-        </form>
-        <div class="panel">
-          <div class="panel-body">
-            <span class="eyebrow">Class table</span>
-            <h3 class="panel-title">Code-owned stats</h3>
-            <div class="card-list" style="margin-top: var(--space-4);">
-              ${Object.entries(CLASS_TABLE).slice(0, 8).map(([name, profile]) => `
-                <div class="item-card">
-                  <h4 class="item-title">${escapeHtml(name)}</h4>
-                  <p class="meta">${escapeHtml(profile.resource)} - ${escapeHtml(profile.tendency)}</p>
-                  <div class="pill-row">${Object.entries(profile).filter(([key]) => ["Fuerza", "Inteligencia", "Carisma", "Magnetismo"].includes(key)).map(([key, value]) => `<span class="pill">${key} ${value}</span>`).join("")}</div>
-                </div>
-              `).join("")}
-            </div>
+          <div class="field">
+            <label for="mode">Campaign type</label>
+            <select id="mode" name="mode">${options(["canon", "rogue-crossover", "free-weird-run"], setupValue("mode", campaign?.mode || "canon"))}</select>
           </div>
+          <div class="field">
+            <label for="maxTurns">Target turns</label>
+            <select id="maxTurns" name="maxTurns">${options(["20", "24"], setupValue("maxTurns", String(campaign?.maxTurns || 20)))}</select>
+          </div>
+          <div class="field">
+            <label for="intensity">Combat intensity</label>
+            <select id="intensity" name="intensity">${options(["normal", "chaotic", "boss-heavy"], setupValue("intensity", campaign?.intensity || "normal"))}</select>
+          </div>
+          <div class="field">
+            <label for="combatWeight">Combat weight %</label>
+            <input id="combatWeight" name="combatWeight" type="number" min="50" max="95" value="${escapeHtml(setupValue("combatWeight", campaign?.combatWeight || 80))}">
+          </div>
+        </section>
+
+        <div class="forge-hero-bays">
+          ${renderHeroForgeSlot("Juanete", "juanete", selectedJuanete)}
+          ${renderHeroForgeSlot("Ironmole", "ironmole", selectedIronmole)}
         </div>
-      </div>
+
+        ${renderMandatoryRitualDrawer(campaign)}
+
+        <footer class="forge-footer">
+          <div class="field forge-seed-field">
+            <label for="seed">Campaign seed</label>
+            <textarea id="seed" name="seed" placeholder="Imagen, reliquia, tono, problema tactico o deseo a probar.">${escapeHtml(ui.setupSeed || campaign?.seed || "")}</textarea>
+          </div>
+          <div class="forge-footer-actions">
+            <button class="btn secondary" type="button" data-action="random-seed" ${ui.seedBusy ? "disabled" : ""}>${icon("shuffle")} ${ui.seedBusy ? "Generando..." : "Generate local seed"}</button>
+            <button class="btn btn-large forge-ignite" type="submit" ${ui.mapBusy ? "disabled" : ""}>${icon("hammer")} ${ui.mapBusy ? "Forging map..." : "Ignite Campaign Map"}</button>
+          </div>
+        </footer>
+      </form>
     </section>
   `;
 }
@@ -422,10 +464,10 @@ function renderPlay(campaign) {
   if (!campaign) {
     return `
       <section class="screen">
-        <div class="empty-state">
-          <h2 class="panel-title">No active campaign</h2>
-          <p>Create a campaign before opening play.</p>
-          <button class="btn" data-view="setup">${icon("scroll")} Campaign Setup</button>
+        <div class="empty-state" style="padding: var(--space-6);">
+          <h2 class="screen-title" style="border:none;">No active campaign</h2>
+          <p class="lore-text">Create a campaign before opening play.</p>
+          <button class="btn" style="margin-top: var(--space-4);" data-view="setup">${icon("scroll")} Campaign Setup</button>
         </div>
       </section>
     `;
@@ -437,12 +479,14 @@ function renderPlay(campaign) {
   if (campaign.activeEncounter && currentDraft) {
     return renderCombatCockpit(campaign, currentDraft);
   }
+  
+  // Normal Play (Exploration / Non-Combat)
   return `
     <section class="screen">
       <div class="screen-header">
         <div>
-          <span class="eyebrow">Campaign play</span>
-          <h2 class="screen-title">${escapeHtml(campaign.title)}</h2>
+          <span class="label">Campaign play</span>
+          <h2 class="screen-title" style="border:none;">${escapeHtml(campaign.title)}</h2>
         </div>
       </div>
       ${renderTopHud(campaign)}
@@ -463,32 +507,43 @@ function renderPlay(campaign) {
 
 function renderCombatCockpit(campaign, currentDraft) {
   return `
-    <section class="screen combat-screen">
-      <div class="screen-header cockpit-header">
-        <div>
-          <span class="eyebrow">Combat mode</span>
-          <h2 class="screen-title">${escapeHtml(campaign.activeEncounter.title)}</h2>
-        </div>
-      </div>
+    <section class="combat-screen">
       ${renderTopHud(campaign)}
-      <div class="combat-cockpit">
-        <aside class="cockpit-rail">
+      <div class="cockpit-core">
+        
+        <!-- Left Rail: Heroes -->
+        <aside class="cockpit-left">
           ${renderCharacterPilot("juanete", "Juanete")}
           ${renderCharacterPilot("ironmole", "Ironmole")}
         </aside>
-        <main class="arena-stack">
+        
+        <!-- Center: Arena -->
+        <main class="cockpit-center">
+          <div class="gm-narration">
+            <p>${escapeHtml(cleanGmNarration(currentDraft.visibleTurnText))}</p>
+          </div>
           ${renderEncounterArena(campaign)}
-          ${renderPlayerTurnPanel(campaign, false)}
-          <details class="battle-log">
-            <summary>${icon("book-open")} Scene log</summary>
-            <p class="scene-text compact">${escapeHtml(cleanGmNarration(currentDraft.visibleTurnText))}</p>
-          </details>
         </main>
-        <aside class="cockpit-rail">
-          ${renderVanaheimAssists(campaign)}
+        
+        <!-- Right: Assists & Logs -->
+        <aside class="cockpit-right">
           ${campaign.activeOutGameMission ? renderRitualGate(campaign.activeOutGameMission, ui.llmBusy) : ""}
+          <div class="plate" style="padding: var(--space-3);">
+            <h3 style="margin-bottom: var(--space-2); color: var(--color-parchment-100); font-family: var(--font-epic);">Epicurogotchi</h3>
+            <p class="lore-text" style="font-size: 0.8rem; margin-bottom: var(--space-3);">Consult the artifact for deep inventory and persistent boons.</p>
+            <a href="${EPICUROGOTCHI_SHEET_URL}" class="artifact-link" target="_blank">
+              ${icon("external-link")} Open Sheet
+            </a>
+          </div>
+          ${renderVanaheimAssists(campaign)}
           ${renderTurnLog(campaign, true)}
         </aside>
+        
+        <!-- Bottom: Action Command Bar -->
+        <div class="cockpit-bottom">
+           ${renderCockpitActionSelectors(campaign, currentDraft)}
+        </div>
+
       </div>
     </section>
   `;
@@ -500,12 +555,23 @@ function renderTopHud(campaign) {
   const threat = encounter?.combatState?.threatClock ?? "-";
   const pet = getActiveEpicurogotchi(state);
   return `
-    <div class="top-hud">
-      ${metric("Turn", `${campaign.turnNumber}/${campaign.maxTurns}${campaign.mechanicalResults?.unresolved ? " unresolved" : ""}`)}
-      ${metric("Phase", campaign.phase)}
-      ${metric("Threat", threat)}
-      ${metric("Ritual", mission ? (mission.completed ? "done" : "open") : "none")}
-      ${metric("Piccolo", `Lv ${pet.level}`)}
+    <div class="cockpit-hud">
+      <div class="hud-segment">
+        <span class="label">Turn ${campaign.turnNumber}/${campaign.maxTurns}${campaign.mechanicalResults?.unresolved ? " unresolved" : ""}</span>
+        <span class="stat-val" style="font-size: 1.1rem; margin-top: 0;">${escapeHtml(campaign.phase)}</span>
+      </div>
+      <div class="hud-segment" style="align-items: center;">
+        <span class="label">Combat Threat</span>
+        <span class="stat-val" style="font-size: 1.1rem; margin-top: 0; color: var(--color-blood-700);">${escapeHtml(threat)}</span>
+      </div>
+      <div class="hud-segment" style="align-items: center;">
+        <span class="label">Ritual Gate</span>
+        <span class="stat-val" style="font-size: 1.1rem; margin-top: 0; color: var(--color-gold-400);">${mission ? (mission.completed ? "Done" : "Open") : "None"}</span>
+      </div>
+      <div class="hud-segment" style="align-items: flex-end;">
+        <span class="label">Piccolo</span>
+        <span class="stat-val" style="font-size: 1.1rem; margin-top: 0;">Lv ${pet.level}</span>
+      </div>
     </div>
   `;
 }
@@ -514,25 +580,31 @@ function renderCharacterPilot(actor, label) {
   const character = state.characters[actor];
   if (!character) return "";
   const hpPercent = Math.max(0, Math.min(100, Math.round((character.hp / Math.max(1, character.maxHp)) * 100)));
+  const isIronmole = actor === "ironmole";
   return `
-    <article class="pilot-card">
-      <div class="split">
-        <div>
-          <span class="eyebrow">${escapeHtml(label)}</span>
-          <h3>${escapeHtml(character.className)}</h3>
+    <div class="hero-card ${isIronmole ? "ironmole" : ""}">
+      <h3 style="margin-bottom: 4px;">${escapeHtml(label)}</h3>
+      <p class="label">${escapeHtml(character.className)}</p>
+      
+      <div style="margin-top: var(--space-2);">
+        <div class="split">
+          <span class="label">HP</span>
+          <span class="label" style="color: ${isIronmole ? 'var(--color-parchment-100)' : 'var(--color-gold-400)'};">${character.hp} / ${character.maxHp}</span>
         </div>
-        <span class="pill hot">HP ${character.hp}/${character.maxHp}</span>
+        <div class="resource-track">
+          <div class="resource-fill ${isIronmole ? '' : 'hp-juanete'}" style="width: ${hpPercent}%;"></div>
+        </div>
       </div>
-      <div class="hp-track"><span style="width:${hpPercent}%"></span></div>
-      <div class="stat-grid compact">
+      
+      <div class="stat-grid compact" style="margin-top: var(--space-3);">
         ${Object.entries(character.stats || {}).map(([stat, value]) => `
-          <div class="stat-box">
-            <span class="stat-label">${escapeHtml(stat)}</span>
-            <strong>${value}</strong>
+          <div class="stat-box" style="text-align: center;">
+            <span class="label">${escapeHtml(stat).substring(0,3)}</span>
+            <strong class="stat-val" style="font-size: 1.2rem;">${value}</strong>
           </div>
         `).join("")}
       </div>
-    </article>
+    </div>
   `;
 }
 
@@ -540,56 +612,109 @@ function renderEncounterArena(campaign) {
   const encounter = campaign.activeEncounter;
   const state = encounter.combatState || {};
   return `
-    <section class="panel arena-panel">
-      <div class="panel-body">
-        <div class="split">
-          <div>
-            <span class="eyebrow">Arena</span>
-            <h3 class="panel-title">${escapeHtml(encounter.objective)}</h3>
-          </div>
-          <span class="pill hot">Target ${encounter.target}</span>
+    <div class="enemy-arena">
+       <div class="enemy-intent">Targeting: ${escapeHtml(encounter.target)}</div>
+       ${encounter.enemies.map((enemy) => {
+         const hpPercent = Math.max(0, Math.min(100, Math.round((enemy.hp / Math.max(1, enemy.maxHp)) * 100)));
+         return `
+           <div class="enemy-card ${enemy.hp <= 0 ? "is-defeated" : ""}" style="width: 80%; text-align: center;">
+             <h2 style="color: var(--color-blood-700); margin-bottom: 4px;">${escapeHtml(enemy.name)}</h2>
+             <p class="label" style="margin-bottom: var(--space-3);">Objective: ${escapeHtml(encounter.objective)}</p>
+             
+             <div style="width: 100%; max-width: 300px; margin: 0 auto;">
+               <div class="split">
+                 <span class="label">Vanguard HP</span>
+                 <span class="label">${enemy.hp} / ${enemy.maxHp}</span>
+               </div>
+               <div class="resource-track" style="height: 12px;">
+                 <div class="resource-fill hp-enemy" style="width: ${hpPercent}%;"></div>
+               </div>
+             </div>
+             <p class="meta" style="margin-top: var(--space-2);">${escapeHtml(enemy.condition)}</p>
+           </div>
+         `;
+       }).join("")}
+       <p class="lore-text" style="font-size: 0.9rem; margin-top: var(--space-4); opacity: 0.8; text-align: center;">
+         GM Intent: ${escapeHtml(state.enemyIntent || "Press the heroes until the scene breaks.")}
+       </p>
+    </div>
+  `;
+}
+
+function renderCockpitActionSelectors(campaign, currentDraft) {
+  const disabled = !currentDraft || ui.llmBusy;
+  const options = currentDraft ? getActionOptions(currentDraft) : { juanete: [], ironmole: [] };
+  
+  const mission = campaign.activeOutGameMission;
+  const ritualRequired = Boolean(mission && mission.status === "required");
+  const ritualDone = !ritualRequired || mission.completed || ui.ritualComplete;
+  const rollGate = getTurnRollGate(campaign);
+  const resolveDisabled = disabled || !ritualDone || !rollGate.ok;
+  
+  const challenge = currentDraft?.challengeSignal || {};
+  const target = campaign.activeEncounter?.target || targetForDifficulty(challenge.difficultyBand || "normal", campaign.turnNumber);
+
+  return `
+    <div style="display: flex; gap: var(--space-4); flex: 1;">
+      <!-- Juanete Select -->
+      <div style="display: flex; flex-direction: column; flex: 1;">
+        <span class="label" style="margin-bottom: 4px;">Juanete's Action</span>
+        <div class="choice-column" style="display: flex; flex-direction: row; gap: 8px;">
+          ${options.juanete.map((item) => `
+             <button class="btn secondary" style="flex:1; padding: 8px; font-size: 0.7rem; font-family: var(--font-mech); ${ui.selectedActions['juanete'] === item.label ? 'background: var(--color-ember-500); color: var(--color-abyss-900); border-color: var(--color-ember-500);' : ''}" 
+                     data-action-option="juanete" data-option-label="${escapeHtml(item.label)}" ${disabled ? "disabled" : ""}>
+               ${escapeHtml(item.label)}
+             </button>
+          `).join("")}
         </div>
-        <div class="enemy-grid">
-          ${encounter.enemies.map((enemy) => {
-            const hpPercent = Math.max(0, Math.min(100, Math.round((enemy.hp / Math.max(1, enemy.maxHp)) * 100)));
-            return `
-              <article class="enemy-card ${enemy.hp <= 0 ? "is-defeated" : ""}">
-                <div class="split">
-                  <h4>${escapeHtml(enemy.name)}</h4>
-                  <span class="pill">${enemy.hp}/${enemy.maxHp}</span>
-                </div>
-                <div class="hp-track danger"><span style="width:${hpPercent}%"></span></div>
-                <p class="meta">${escapeHtml(enemy.condition)}</p>
-              </article>
-            `;
-          }).join("")}
-        </div>
-        <div class="arena-intent">
-          <span class="eyebrow">Enemy intent</span>
-          <p>${escapeHtml(state.enemyIntent || "Press the heroes until the scene breaks.")}</p>
-        </div>
-        ${renderRollCards(campaign)}
-        ${renderTimingGame(encounter)}
       </div>
-    </section>
+      <!-- Ironmole Select -->
+      <div style="display: flex; flex-direction: column; flex: 1;">
+        <span class="label" style="margin-bottom: 4px;">Ironmole's Action</span>
+        <div class="choice-column" style="display: flex; flex-direction: row; gap: 8px;">
+          ${options.ironmole.map((item) => `
+             <button class="btn secondary" style="flex:1; padding: 8px; font-size: 0.7rem; font-family: var(--font-mech); ${ui.selectedActions['ironmole'] === item.label ? 'background: var(--color-ember-500); color: var(--color-abyss-900); border-color: var(--color-ember-500);' : ''}" 
+                     data-action-option="ironmole" data-option-label="${escapeHtml(item.label)}" ${disabled ? "disabled" : ""}>
+               ${escapeHtml(item.label)}
+             </button>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+    
+    <div style="display: flex; gap: var(--space-3); align-items: center;">
+      <div style="text-align: right; margin-right: var(--space-3);">
+        <p class="label">Roll Target</p>
+        <p class="mech-text" style="color: var(--color-ember-300);">DC ${target}</p>
+      </div>
+      
+      <!-- Physical Dice Rolls -->
+      <button class="die-roll" data-action="roll-action" data-actor="juanete" title="Roll Juanete" ${disabled || !ui.selectedActions.juanete ? "disabled" : ""}>
+        <span>${ui.rolls.juanete ? ui.rolls.juanete.total : "J"}</span>
+      </button>
+      <button class="die-roll" data-action="roll-action" data-actor="ironmole" title="Roll Ironmole" style="border-color: var(--color-gold-400); color: var(--color-gold-400);" ${disabled || !ui.selectedActions.ironmole ? "disabled" : ""}>
+        <span>${ui.rolls.ironmole ? ui.rolls.ironmole.total : "I"}</span>
+      </button>
+
+      <button class="btn btn-large" data-action="resolve-game-turn" ${resolveDisabled ? "disabled" : ""}>
+        ${ui.llmBusy ? "Resolving..." : "Resolve Turn"}
+      </button>
+    </div>
   `;
 }
 
 function renderVanaheimAssists(campaign) {
   const companions = Object.values(state.characters.vanaheim || {});
   return `
-    <div class="panel assist-panel">
-      <div class="panel-body">
-        <span class="eyebrow">Vanaheim assists</span>
-        <div class="assist-grid">
-          ${companions.map((companion) => `
-            <div class="assist-card">
-              <strong>${escapeHtml(companion.name.split(" ")[0])}</strong>
-              <span>${escapeHtml(companion.sphere)}</span>
-              <small>Lv ${companion.level}</small>
-            </div>
-          `).join("")}
-        </div>
+    <div class="plate" style="padding: var(--space-3);">
+      <span class="label">Vanaheim Assists</span>
+      <div class="assist-grid">
+        ${companions.map((companion) => `
+          <div class="assist-card">
+            <strong style="font-family: var(--font-epic); font-size: 0.9rem;">${escapeHtml(companion.name.split(" ")[0])}</strong>
+            <span class="meta" style="font-size: 0.7rem;">${escapeHtml(companion.sphere)}</span>
+          </div>
+        `).join("")}
       </div>
     </div>
   `;
@@ -600,43 +725,41 @@ function renderEpicurogotchiPrelude(campaign) {
     <section class="screen">
       <div class="screen-header">
         <div>
-          <span class="eyebrow">Turn 0 / Epicurogotchi sheet</span>
-          <h2 class="screen-title">${escapeHtml(campaign.title)}</h2>
+          <span class="label">Turn 0 / Epicurogotchi sheet</span>
+          <h2 class="screen-title" style="border:none;">${escapeHtml(campaign.title)}</h2>
           <p class="screen-copy">Before the GM opens Turn 1, the heroes visit the Epicurogotchi sheet to check Piccolo, levels, discoveries, and possible new rituals.</p>
         </div>
       </div>
       <div class="grid two game-table">
-        <div class="panel scene-panel">
-          <div class="panel-body prelude-body">
-            <span class="eyebrow">Zeroth turn</span>
+        <div class="plate scene-panel">
+          <div class="prelude-body">
+            <span class="label">Zeroth turn</span>
             <h3 class="panel-title">Open Piccolo's Sheet</h3>
-            <p class="scene-lead">This is not an LLM step. It is the table ignition before play: review the sheet, note Epicurogotchi level, and bring any discovered rituals back into the campaign.</p>
+            <p class="lore-text">This is not an LLM step. It is the table ignition before play: review the sheet, note Epicurogotchi level, and bring any discovered rituals back into the campaign.</p>
             <a class="sheet-card" href="${EPICUROGOTCHI_SHEET_URL}" target="_blank" rel="noopener noreferrer">
               <span>${icon("external-link")} Google Sheet</span>
-              <strong>Epicurogotchi / Ritual Source</strong>
-              <small>Opens the living sheet in Google Drive.</small>
+              <strong style="font-family: var(--font-epic); font-size: 1.2rem; margin-top: 8px;">Epicurogotchi / Ritual Source</strong>
+              <small class="meta">Opens the living sheet in Google Drive.</small>
             </a>
-            <label class="ritual-check prelude-check">
+            <label class="ritual-check mini-check" style="margin-top: var(--space-4);">
               <input type="checkbox" data-input="prelude-ready" ${ui.ritualComplete ? "checked" : ""}>
               <span>
                 <strong>Piccolo sheet reviewed</strong>
-                <small>Level, form, and ritual discoveries are ready for Turn 1.</small>
+                <small class="meta" style="display:block;">Level, form, and ritual discoveries are ready for Turn 1.</small>
               </span>
             </label>
-            <button class="btn btn-large" data-action="ignite-turn-one" ${ui.ritualComplete || campaign.epicurogotchiReady ? "" : "disabled"}>${icon("flame")} Ignite Turn One</button>
+            <button class="btn btn-large" style="margin-top: var(--space-4);" data-action="ignite-turn-one" ${ui.ritualComplete || campaign.epicurogotchiReady ? "" : "disabled"}>${icon("flame")} Ignite Turn One</button>
           </div>
         </div>
         <aside class="stack game-side">
           ${renderGameStatus(campaign)}
-          <div class="panel">
-            <div class="panel-body">
-              <span class="eyebrow">What to bring back</span>
-              <h3 class="panel-title">Sheet Notes</h3>
-              <div class="card-list" style="margin-top: var(--space-4);">
-                <div class="item-card"><h4 class="item-title">Epicurogotchi level</h4><p class="meta">Use the sheet as the source of truth for Piccolo before the run.</p></div>
-                <div class="item-card"><h4 class="item-title">New rituals</h4><p class="meta">Anything found there can later enter the Ritual Library.</p></div>
-                <div class="item-card"><h4 class="item-title">Campaign omen</h4><p class="meta">The first scene should react to Piccolo's current state.</p></div>
-              </div>
+          <div class="plate">
+            <span class="label">What to bring back</span>
+            <h3 class="panel-title">Sheet Notes</h3>
+            <div class="card-list" style="margin-top: var(--space-4);">
+              <div class="item-card"><h4 class="item-title">Epicurogotchi level</h4><p class="meta">Use the sheet as the source of truth for Piccolo before the run.</p></div>
+              <div class="item-card"><h4 class="item-title">New rituals</h4><p class="meta">Anything found there can later enter the Ritual Library.</p></div>
+              <div class="item-card"><h4 class="item-title">Campaign omen</h4><p class="meta">The first scene should react to Piccolo's current state.</p></div>
             </div>
           </div>
         </aside>
@@ -648,42 +771,36 @@ function renderEpicurogotchiPrelude(campaign) {
 function renderCurrentScene(campaign, currentDraft) {
   if (ui.llmBusy && !currentDraft) {
     return `
-      <div class="panel scene-panel">
-        <div class="panel-body">
-          <span class="eyebrow">GM is opening the table</span>
-          <h3 class="panel-title">Piccolo is listening...</h3>
-          <p class="item-copy">The campaign is being narrated now. This should only take a moment.</p>
-        </div>
+      <div class="plate scene-panel">
+        <span class="label">GM is opening the table</span>
+        <h3 class="panel-title">Piccolo is listening...</h3>
+        <p class="lore-text" style="margin-top: var(--space-3);">The campaign is being narrated now. This should only take a moment.</p>
       </div>
     `;
   }
   if (!currentDraft) {
     const hasStarted = campaign.turns.length > 0;
     return `
-      <div class="panel scene-panel">
-        <div class="panel-body">
-          <span class="eyebrow">Turn ${campaign.turnNumber}/${campaign.maxTurns}</span>
-          <h3 class="panel-title">${hasStarted ? "The Next Scene Is Waiting" : "Begin the Campaign"}</h3>
-          <p class="item-copy">${hasStarted ? "The last turn is saved in the log. Open the next scene to keep playing." : "The campaign exists, but the first scene is not open yet."}</p>
-          ${ui.llmError ? `<div class="status-note error">${escapeHtml(ui.llmError)}</div>` : ""}
-          <button class="btn" data-action="start-campaign">${icon("sparkles")} ${hasStarted ? `Generate Turn ${campaign.turnNumber}` : "Start Turn One"}</button>
-        </div>
+      <div class="plate scene-panel">
+        <span class="label">Turn ${campaign.turnNumber}/${campaign.maxTurns}</span>
+        <h3 class="panel-title">${hasStarted ? "The Next Scene Is Waiting" : "Begin the Campaign"}</h3>
+        <p class="lore-text" style="margin-top: var(--space-3);">${hasStarted ? "The last turn is saved in the log. Open the next scene to keep playing." : "The campaign exists, but the first scene is not open yet."}</p>
+        ${ui.llmError ? `<div class="status-note error" style="margin-top: var(--space-3);">${escapeHtml(ui.llmError)}</div>` : ""}
+        <button class="btn" style="margin-top: var(--space-4);" data-action="start-campaign">${icon("sparkles")} ${hasStarted ? `Generate Turn ${campaign.turnNumber}` : "Start Turn One"}</button>
       </div>
     `;
   }
   const sceneText = cleanGmNarration(currentDraft.visibleTurnText);
   return `
-    <article class="panel scene-panel">
-      <div class="panel-body">
-        <div class="split">
-          <div>
-            <span class="eyebrow">Scene</span>
-            <h3 class="panel-title">Turn ${currentDraft.turnNumber}/${campaign.maxTurns}</h3>
-          </div>
-          <span class="pill hot">${escapeHtml(currentDraft.challengeSignal?.challengeType || "scene")}</span>
+    <article class="plate scene-panel">
+      <div class="split">
+        <div>
+          <span class="label">Scene</span>
+          <h3 class="panel-title">Turn ${currentDraft.turnNumber}/${campaign.maxTurns}</h3>
         </div>
-        <p class="scene-text">${escapeHtml(sceneText)}</p>
+        <span class="pill hot">${escapeHtml(currentDraft.challengeSignal?.challengeType || "scene")}</span>
       </div>
+      <p class="scene-text">${escapeHtml(sceneText)}</p>
     </article>
   `;
 }
@@ -698,38 +815,36 @@ function renderPlayerTurnPanel(campaign, showRitual = true) {
   const rollGate = getTurnRollGate(campaign);
   const resolveDisabled = disabled || !ritualDone || !rollGate.ok;
   return `
-    <div class="panel">
-      <div class="panel-body">
-        <span class="eyebrow">Your move</span>
-        <h3 class="panel-title">Choose Actions</h3>
-        ${mission && showRitual ? renderRitualGate(mission, disabled) : ""}
-        <div class="choice-grid">
-          ${renderActionColumn("juanete", "Juanete", options.juanete, disabled)}
-          ${renderActionColumn("ironmole", "Ironmole", options.ironmole, disabled)}
-        </div>
-        <details class="optional-write">
-          <summary>${icon("pencil")} Write a custom action</summary>
-          <div class="form-grid" style="margin-top: var(--space-4);">
-            <div class="field">
-              <label for="juaneteAction">Juanete custom</label>
-              <textarea id="juaneteAction" data-input="juanete-action" placeholder="Optional override for Juanete." ${disabled ? "disabled" : ""}>${escapeHtml(ui.customActions.juanete || "")}</textarea>
-            </div>
-            <div class="field">
-              <label for="ironmoleAction">Ironmole custom</label>
-              <textarea id="ironmoleAction" data-input="ironmole-action" placeholder="Optional override for Ironmole." ${disabled ? "disabled" : ""}>${escapeHtml(ui.customActions.ironmole || "")}</textarea>
-            </div>
-            <div class="field full">
-              <label for="tableNotes">Table notes</label>
-              <textarea id="tableNotes" data-input="table-notes" placeholder="Optional proof, tone, tactical intent, or shared decision." ${disabled ? "disabled" : ""}>${escapeHtml(ui.customActions.notes || "")}</textarea>
-            </div>
+    <div class="plate">
+      <span class="label">Your move</span>
+      <h3 class="panel-title">Choose Actions</h3>
+      ${mission && showRitual ? renderRitualGate(mission, disabled) : ""}
+      <div class="choice-grid">
+        ${renderActionColumn("juanete", "Juanete", options.juanete, disabled)}
+        ${renderActionColumn("ironmole", "Ironmole", options.ironmole, disabled)}
+      </div>
+      <details class="optional-write">
+        <summary>${icon("pencil")} Write a custom action</summary>
+        <div class="form-grid" style="margin-top: var(--space-4);">
+          <div class="field">
+            <label for="juaneteAction">Juanete custom</label>
+            <textarea id="juaneteAction" data-input="juanete-action" placeholder="Optional override for Juanete." ${disabled ? "disabled" : ""}>${escapeHtml(ui.customActions.juanete || "")}</textarea>
           </div>
-        </details>
-        ${!disabled && !rollGate.ok ? `<div class="status-note warn" style="margin-top: var(--space-4);">${escapeHtml(rollGate.reason)}</div>` : ""}
-        ${ui.llmError ? `<div class="status-note error" style="margin-top: var(--space-4);">${escapeHtml(ui.llmError)}</div>` : ""}
-        <div class="cluster" style="margin-top: var(--space-4);">
-          <button class="btn btn-large" data-action="resolve-game-turn" ${resolveDisabled ? "disabled" : ""}>${icon("sparkles")} ${ui.llmBusy ? "Resolving..." : "Resolve Turn"}</button>
-          <button class="btn secondary" data-action="refresh-scene" ${ui.llmBusy ? "disabled" : ""}>${icon("rotate-cw")} Regenerate Scene</button>
+          <div class="field">
+            <label for="ironmoleAction">Ironmole custom</label>
+            <textarea id="ironmoleAction" data-input="ironmole-action" placeholder="Optional override for Ironmole." ${disabled ? "disabled" : ""}>${escapeHtml(ui.customActions.ironmole || "")}</textarea>
+          </div>
+          <div class="field full">
+            <label for="tableNotes">Table notes</label>
+            <textarea id="tableNotes" data-input="table-notes" placeholder="Optional proof, tone, tactical intent, or shared decision." ${disabled ? "disabled" : ""}>${escapeHtml(ui.customActions.notes || "")}</textarea>
+          </div>
         </div>
+      </details>
+      ${!disabled && !rollGate.ok ? `<div class="status-note warn" style="margin-top: var(--space-4);">${escapeHtml(rollGate.reason)}</div>` : ""}
+      ${ui.llmError ? `<div class="status-note error" style="margin-top: var(--space-4);">${escapeHtml(ui.llmError)}</div>` : ""}
+      <div style="display: flex; gap: var(--space-3); margin-top: var(--space-4);">
+        <button class="btn btn-large" data-action="resolve-game-turn" ${resolveDisabled ? "disabled" : ""}>${icon("sparkles")} ${ui.llmBusy ? "Resolving..." : "Resolve Turn"}</button>
+        <button class="btn secondary" data-action="refresh-scene" ${ui.llmBusy ? "disabled" : ""}>${icon("rotate-cw")} Regenerate Scene</button>
       </div>
     </div>
   `;
@@ -807,7 +922,7 @@ function renderActionColumn(actor, label, items, disabled) {
   const selected = ui.selectedActions[actor] || "";
   return `
     <div class="choice-column">
-      <span class="eyebrow">${escapeHtml(label)}</span>
+      <span class="label">${escapeHtml(label)}</span>
       ${items.length ? items.map((item) => `
         <button class="action-choice ${selected === item.label ? "is-selected" : ""}" data-action-option="${actor}" data-option-label="${escapeHtml(item.label)}" ${disabled ? "disabled" : ""}>
           <strong>${escapeHtml(item.label)}</strong>
@@ -825,20 +940,20 @@ function renderRitualGate(mission, disabled) {
   return `
     <div class="ritual-gate ${checked ? "is-complete" : ""}">
       <div>
-        <span class="eyebrow">External seal</span>
-        <h4>${escapeHtml(ritual.title)}</h4>
-        <p>${escapeHtml(ritual.description)}</p>
+        <span class="label">External seal</span>
+        <h4 style="margin: 4px 0;">${escapeHtml(ritual.title)}</h4>
+        <p class="lore-text" style="font-size: 0.9rem;">${escapeHtml(ritual.description)}</p>
         <div class="pill-row">
           <span class="pill hot">${escapeHtml(ritual.size)}</span>
           <span class="pill">${escapeHtml(ritual.sphere)}</span>
-          <span class="pill cool">${checked ? "complete" : "blocks resolve"}</span>
+          <span class="pill ${checked ? 'cool' : 'danger'}">${checked ? "complete" : "blocks resolve"}</span>
         </div>
       </div>
       <label class="ritual-check">
         <input type="checkbox" data-input="ritual-complete" ${checked ? "checked" : ""} ${disabled || mission.completed ? "disabled" : ""}>
         <span>Complete</span>
       </label>
-      <div class="field full">
+      <div class="field full" style="grid-column: 1 / -1; margin-top: var(--space-2);">
         <label for="ritualProof">Proof note</label>
         <textarea id="ritualProof" data-input="ritual-proof" placeholder="Short note about the proof at the table." ${disabled || mission.completed ? "disabled" : ""}>${escapeHtml(ui.ritualProof || mission.proofNote || "")}</textarea>
       </div>
@@ -849,21 +964,18 @@ function renderRitualGate(mission, disabled) {
 function renderGameStatus(campaign) {
   const mission = campaign.activeOutGameMission;
   return `
-    <div class="panel">
-      <div class="panel-body">
-        <span class="eyebrow">Run</span>
-        <h3 class="panel-title">${escapeHtml(campaign.phase)}</h3>
-        <div class="metric-strip" style="margin-top: var(--space-4);">
-          ${metric("Turn", `${campaign.turnNumber}/${campaign.maxTurns}`)}
-          ${metric("Ritual", mission ? (mission.completed ? "done" : "open") : "none")}
-          ${metric("Combat", campaign.activeEncounter ? "active" : "none")}
-          ${metric("Map", campaign.campaignMapStatus || (campaign.campaignMap ? "ready" : "none"))}
-          ${metric("Scene", ui.llmBusy ? "opening" : "ready")}
-        </div>
-        <div class="character-state-grid">
-          ${renderCharacterState("juanete", "Juanete")}
-          ${renderCharacterState("ironmole", "Ironmole")}
-        </div>
+    <div class="plate">
+      <span class="label">Run</span>
+      <h3 class="panel-title">${escapeHtml(campaign.phase)}</h3>
+      <div class="metric-strip" style="margin-top: var(--space-4);">
+        ${metric("Turn", `${campaign.turnNumber}/${campaign.maxTurns}`)}
+        ${metric("Ritual", mission ? (mission.completed ? "done" : "open") : "none")}
+        ${metric("Combat", campaign.activeEncounter ? "active" : "none")}
+        ${metric("Map", campaign.campaignMapStatus || (campaign.campaignMap ? "ready" : "none"))}
+      </div>
+      <div class="character-state-grid" style="margin-top: var(--space-4);">
+        ${renderCharacterState("juanete", "Juanete")}
+        ${renderCharacterState("ironmole", "Ironmole")}
       </div>
     </div>
   `;
@@ -872,18 +984,18 @@ function renderGameStatus(campaign) {
 function renderCharacterState(actor, label) {
   const character = state.characters[actor];
   if (!character) return "";
-  const stats = Object.entries(character.stats || {}).map(([stat, value]) => `<span class="pill">${escapeHtml(stat)} ${value} (${modifierFor(value) >= 0 ? "+" : ""}${modifierFor(value)})</span>`).join("");
+  const stats = Object.entries(character.stats || {}).map(([stat, value]) => `<span class="pill">${escapeHtml(stat).substring(0,3)} ${value} (${modifierFor(value) >= 0 ? "+" : ""}${modifierFor(value)})</span>`).join("");
   const abilities = character.abilities?.length ? character.abilities.join(", ") : "base class kit";
   const equipment = character.items?.length ? character.items.join(", ") : "starter equipment";
   return `
     <div class="character-state">
       <div class="split">
-        <h4>${escapeHtml(label)}</h4>
+        <h4 style="margin:0;">${escapeHtml(label)}</h4>
         <span class="pill hot">HP ${character.hp}/${character.maxHp}</span>
       </div>
-      <p class="meta">${escapeHtml(character.className)} - ${escapeHtml(character.resource)} / ${escapeHtml(character.tendency)}</p>
+      <p class="meta" style="margin-bottom: var(--space-2);">${escapeHtml(character.className)} - ${escapeHtml(character.resource)} / ${escapeHtml(character.tendency)}</p>
       <div class="pill-row">${stats}</div>
-      <p class="meta"><strong>Abilities:</strong> ${escapeHtml(abilities)}</p>
+      <p class="meta" style="margin-top: var(--space-2);"><strong>Abilities:</strong> ${escapeHtml(abilities)}</p>
       <p class="meta"><strong>Equipment:</strong> ${escapeHtml(equipment)}</p>
     </div>
   `;
@@ -895,34 +1007,32 @@ function renderInteractionPanel(campaign) {
   const target = encounter?.target || targetForDifficulty(challenge.difficultyBand || "normal", campaign.turnNumber);
   const turnType = challenge.challengeType || "scene";
   return `
-    <div class="panel">
-      <div class="panel-body">
-        <div class="split">
-          <div>
-            <span class="eyebrow">Action</span>
-            <h3 class="panel-title">${encounter ? escapeHtml(encounter.title) : "Roll the Scene"}</h3>
-          </div>
-          <span class="pill hot">Target ${target}</span>
+    <div class="plate">
+      <div class="split">
+        <div>
+          <span class="label">Action</span>
+          <h3 class="panel-title">${encounter ? escapeHtml(encounter.title) : "Roll the Scene"}</h3>
         </div>
-        ${encounter ? `
-          <p class="item-copy">${escapeHtml(encounter.objective)}</p>
-          <div class="card-list" style="margin-top: var(--space-4);">
-            ${encounter.enemies.map((enemy) => `
-              <div class="item-card is-live">
-                <div class="split">
-                  <h4 class="item-title">${escapeHtml(enemy.name)}</h4>
-                  <span class="pill">HP ${enemy.hp}/${enemy.maxHp}</span>
-                </div>
-                <p class="meta">${escapeHtml(enemy.condition)}</p>
-              </div>
-            `).join("")}
-          </div>
-        ` : `
-          <p class="item-copy">${campaign.currentTurnDraft ? `${escapeHtml(turnType)} turn. Choose actions, roll, resolve.` : "Open the next scene to act."}</p>
-        `}
-        ${renderRollCards(campaign)}
-        ${encounter ? renderTimingGame(encounter) : ""}
+        <span class="pill hot">Target ${target}</span>
       </div>
+      ${encounter ? `
+        <p class="lore-text" style="margin-top: var(--space-2);">${escapeHtml(encounter.objective)}</p>
+        <div class="card-list" style="margin-top: var(--space-4);">
+          ${encounter.enemies.map((enemy) => `
+            <div class="item-card is-live">
+              <div class="split">
+                <h4 class="item-title">${escapeHtml(enemy.name)}</h4>
+                <span class="pill">HP ${enemy.hp}/${enemy.maxHp}</span>
+              </div>
+              <p class="meta">${escapeHtml(enemy.condition)}</p>
+            </div>
+          `).join("")}
+        </div>
+      ` : `
+        <p class="lore-text" style="margin-top: var(--space-2);">${campaign.currentTurnDraft ? `${escapeHtml(turnType)} turn. Choose actions, roll, resolve.` : "Open the next scene to act."}</p>
+      `}
+      ${renderRollCards(campaign)}
+      ${encounter ? renderTimingGame(encounter) : ""}
     </div>
   `;
 }
@@ -930,7 +1040,7 @@ function renderInteractionPanel(campaign) {
 function renderRollCards(campaign) {
   if (!campaign.currentTurnDraft) return "";
   return `
-    <div class="roll-grid">
+    <div class="roll-grid" style="margin-top: var(--space-4);">
       ${renderRollCard(campaign, "juanete", "Juanete")}
       ${renderRollCard(campaign, "ironmole", "Ironmole")}
     </div>
@@ -949,16 +1059,16 @@ function renderRollCard(campaign, actor, label) {
   return `
     <div class="roll-card ${roll ? "has-roll" : ""}">
       <div>
-        <span class="eyebrow">${escapeHtml(label)}</span>
-        <h4>${escapeHtml(action.label || "Choose an action first")}</h4>
+        <span class="label">${escapeHtml(label)}</span>
+        <h4 style="margin: 4px 0;">${escapeHtml(action.label || "Choose an action first")}</h4>
         <p class="meta">${escapeHtml(stat)} ${statValue} (${modifier >= 0 ? "+" : ""}${modifier}) vs ${target}</p>
       </div>
       ${roll ? `
         <div class="roll-result">
           <strong>${roll.total}</strong>
-          <span>d20 ${roll.d20} ${roll.modifier >= 0 ? "+" : ""}${roll.modifier}</span>
-          <small>${escapeHtml(roll.outcome)}</small>
-          ${roll.damage ? `<small>damage ${roll.damage.total}</small>` : ""}
+          <span style="font-family: var(--font-mech); font-size: 0.7rem; color: var(--color-parchment-400);">d20 ${roll.d20} ${roll.modifier >= 0 ? "+" : ""}${roll.modifier}</span>
+          <small style="display:block; font-family: var(--font-mech); font-size: 0.65rem; color: var(--color-ember-300); text-transform: uppercase;">${escapeHtml(roll.outcome)}</small>
+          ${roll.damage ? `<small style="display:block; font-family: var(--font-mech); font-size: 0.65rem; color: var(--color-blood-700); text-transform: uppercase;">dmg ${roll.damage.total}</small>` : ""}
         </div>
       ` : ""}
       <button class="btn secondary dice-button" data-action="roll-action" data-actor="${actor}" ${action.label && (!roll || needsDamage) ? "" : "disabled"}>${icon("dice-5")} ${needsDamage ? "Roll damage" : roll ? "Rolled" : "Roll hit"}</button>
@@ -1044,12 +1154,12 @@ function renderTimingGame(encounter) {
   const score = encounter.minigame?.score;
   return `
     <div class="timing-game" style="margin-top: var(--space-4);">
-      <span class="eyebrow">Optional bonus</span>
+      <span class="label">Optional bonus</span>
       <div class="timing-track">
         <div class="timing-target"></div>
         <div class="timing-marker" style="--marker-x:${ui.timing.marker}%"></div>
       </div>
-      <div class="cluster">
+      <div style="display: flex; gap: var(--space-3); align-items: center; margin-top: var(--space-2);">
         <button class="btn secondary" data-action="${ui.timing.active ? "strike-score" : "start-score"}">${icon(ui.timing.active ? "crosshair" : "sparkle")} ${ui.timing.active ? "Take bonus" : "Try bonus"}</button>
         ${score ? `<span class="pill hot">Bonus ${score}: ${escapeHtml(encounter.minigame.resultLabel)}</span>` : `<span class="meta">Optional; d20 rolls are the main resolution.</span>`}
       </div>
@@ -1057,114 +1167,18 @@ function renderTimingGame(encounter) {
   `;
 }
 
-function renderAdvancedGmPanel(campaign) {
-  const sessionKey = window.sessionStorage.getItem("tya.gemini.apiKey") || "";
-  return `
-    <details class="panel advanced-panel" ${ui.advancedOpen ? "open" : ""}>
-      <summary class="advanced-summary">
-        <span>${icon("settings")} Engine Settings</span>
-        <small>Routes and run records</small>
-      </summary>
-      <div class="panel-body">
-        <div class="form-grid" style="margin-top: var(--space-4);">
-          <div class="field">
-            <label for="modelTier">Model route</label>
-            <select id="modelTier" data-input="model-tier">
-              ${GEMINI_MODEL_TIERS.map((tier) => `<option value="${tier.value}" ${state.settings.modelTier === tier.value ? "selected" : ""}>${tier.label}</option>`).join("")}
-            </select>
-          </div>
-          <div class="field">
-            <label for="llmMode">API mode</label>
-            <select id="llmMode" data-input="llm-mode">
-              ${GEMINI_MODES.map((mode) => `<option value="${mode.value}" ${state.settings.llmMode === mode.value ? "selected" : ""}>${mode.label}</option>`).join("")}
-            </select>
-          </div>
-          <div class="field">
-            <label for="thinkingLevel">Thinking</label>
-            <select id="thinkingLevel" data-input="thinking-level">${options(["minimal", "low", "medium", "high"], state.settings.thinkingLevel || "high")}</select>
-          </div>
-          <div class="field">
-            <label for="maxOutputTokens">Max output</label>
-            <input id="maxOutputTokens" data-input="max-output-tokens" type="number" min="500" max="30000" value="${state.settings.maxOutputTokens || 20000}">
-          </div>
-          <div class="field">
-            <label for="thinkingBudget">2.5 thinking budget</label>
-            <input id="thinkingBudget" data-input="thinking-budget" type="number" min="128" max="32768" value="${state.settings.thinkingBudget || 16000}">
-          </div>
-          <div class="field">
-            <label for="temperature">Temperature</label>
-            <input id="temperature" data-input="temperature" type="number" min="0" max="2" step="0.01" value="${state.settings.temperature || 0.85}">
-          </div>
-          <div class="field full">
-            <label for="llmEndpoint">Proxy endpoint</label>
-            <input id="llmEndpoint" data-input="llm-endpoint" value="${escapeHtml(state.settings.llmEndpoint || "")}" placeholder="Optional Netlify function or local endpoint">
-          </div>
-          <div class="field full">
-            <label for="geminiApiKey">Gemini API key</label>
-            <input id="geminiApiKey" data-input="gemini-api-key" type="password" value="${escapeHtml(sessionKey)}" autocomplete="off" placeholder="Session only; not exported">
-          </div>
-        </div>
-        <div class="field" style="margin-top: var(--space-4);">
-          <label for="playerActions">Juanete / Ironmole actions</label>
-          <textarea id="playerActions" data-input="player-actions" placeholder="What do they do?">${escapeHtml(ui.playerActions)}</textarea>
-        </div>
-        <div class="cluster">
-          <button class="btn" data-action="build-prompt">${icon("copy")} Build Prompt</button>
-          <button class="btn secondary" data-action="copy-prompt" ${ui.promptOutput ? "" : "disabled"}>${icon("clipboard")} Copy</button>
-          <button class="btn secondary" data-action="use-local-proxy">${icon("server")} Local Proxy</button>
-          <button class="btn" data-action="run-gemini" ${ui.llmBusy ? "disabled" : ""}>${icon("wand-sparkles")} ${ui.llmBusy ? "Running..." : "Run Gemini"}</button>
-        </div>
-        ${ui.llmError ? `<div class="status-note error" style="margin-top: var(--space-4);">${escapeHtml(ui.llmError)}</div>` : ""}
-        ${ui.promptOutput ? `<pre class="prompt-output" style="margin-top: var(--space-4);">${escapeHtml(ui.promptOutput)}</pre>` : ""}
-      </div>
-    </details>
-  `;
-}
-
-function renderGmPanel(campaign) {
-  const gate = campaign ? "" : "disabled";
-  return `
-    <div class="panel">
-      <div class="panel-body">
-        <span class="eyebrow">GM output</span>
-        <h3 class="panel-title">Validate and commit</h3>
-        <div class="field" style="margin-top: var(--space-4);">
-          <label for="gmOutput">Paste GM JSON or visible text</label>
-          <textarea id="gmOutput" data-input="gm-output" placeholder='{"visibleTurnText":"...","challengeSignal":{...}}'>${escapeHtml(ui.gmOutput)}</textarea>
-        </div>
-        <div class="cluster">
-          <button class="btn secondary" data-action="validate-gm" ${gate}>${icon("scan-text")} Validate</button>
-          <button class="btn" data-action="commit-turn" ${gate}>${icon("check")} Commit Turn</button>
-        </div>
-        ${ui.validation ? renderValidation(ui.validation) : ""}
-      </div>
-    </div>
-  `;
-}
-
-function renderValidation(validation) {
-  return `
-    <div class="status-note ${validation.ok ? "" : "error"}" style="margin-top: var(--space-4);">
-      <strong>${validation.ok ? "Output passes current validation." : "Repair needed."}</strong>
-      ${validation.issues.length ? `<ul>${validation.issues.map((issue) => `<li>${escapeHtml(issue)}</li>`).join("")}</ul>` : ""}
-    </div>
-  `;
-}
-
 function renderTurnLog(campaign, compact = false) {
   return `
-    <div class="panel">
-      <div class="panel-body">
-        <span class="eyebrow">Log</span>
-        <h3 class="panel-title">${compact ? "Recent" : "Saved turns"}</h3>
-        <div class="log-list" style="margin-top: var(--space-4);">
-          ${campaign.turns.length ? campaign.turns.slice().reverse().slice(0, compact ? 3 : campaign.turns.length).map((turn) => `
-            <article class="turn-log">
-              <span class="eyebrow">Turn ${turn.turnNumber}</span>
-              <pre>${escapeHtml(turn.visibleTurnText || "No visible text.")}</pre>
-            </article>
-          `).join("") : `<div class="empty-state">No turns committed yet.</div>`}
-        </div>
+    <div class="plate" style="${compact ? 'padding: var(--space-3); display: flex; flex-direction: column; flex: 1;' : ''}">
+      <span class="label">Log</span>
+      <h3 class="panel-title">${compact ? "Scene Log" : "Saved turns"}</h3>
+      <div class="${compact ? 'battle-log' : 'log-list'}" style="margin-top: var(--space-4);">
+        ${campaign.turns.length ? campaign.turns.slice().reverse().slice(0, compact ? 3 : campaign.turns.length).map((turn) => `
+          <div class="${compact ? 'log-entry consequence' : 'turn-log'}">
+            <span class="label" style="margin-bottom: 2px;">Turn ${turn.turnNumber}</span>
+            <pre style="font-family: var(--font-mech); white-space: pre-wrap; font-size: 0.8rem; color: var(--color-parchment-100); margin: 0;">${escapeHtml(turn.visibleTurnText || "No visible text.")}</pre>
+          </div>
+        `).join("") : `<div class="empty-state">No turns committed yet.</div>`}
       </div>
     </div>
   `;
@@ -1176,9 +1190,9 @@ function renderRituals() {
     <section class="screen">
       <div class="screen-header">
         <div>
-          <span class="eyebrow">Rituals library</span>
-          <h2 class="screen-title">Out-game Fuel</h2>
-          <p class="screen-copy">Every combat pulls from these pools. If no matching ritual exists, the app falls back to a Joker ritual request.</p>
+          <span class="label">Rituals library</span>
+          <h2 class="screen-title" style="border:none;">Tome of Rituals</h2>
+          <p class="screen-copy">Out-of-game bindings that unlock narrative gates. Every combat pulls from these pools.</p>
         </div>
       </div>
       <div class="metric-strip" style="margin-bottom: var(--space-5);">
@@ -1188,8 +1202,8 @@ function renderRituals() {
         ${metric("Spheres", SPHERES.length)}
       </div>
       <div class="grid two">
-        <form class="panel" data-form="ritual">
-          <div class="panel-body form-grid">
+        <form class="plate" data-form="ritual">
+          <div class="form-grid">
             <div class="field full"><label>Title</label><input name="title" required></div>
             <div class="field full"><label>Description</label><textarea name="description" required></textarea></div>
             <div class="field"><label>Sphere</label><select name="sphere">${SPHERES.map((sphere) => `<option value="${sphere.id}">${sphere.name}</option>`).join("")}</select></div>
@@ -1199,34 +1213,32 @@ function renderRituals() {
             <div class="field"><label>Tone</label><input name="tone" placeholder="focused"></div>
             <div class="field"><label>Reward bias</label><input name="rewardBias" placeholder="resonance"></div>
             <div class="field full"><label>Tags</label><input name="tags" placeholder="food, precision, idea"></div>
-            <div class="field full"><label><input type="checkbox" name="requiresProof" checked> Requires proof note</label></div>
-            <div class="field full"><button class="btn" type="submit">${icon("plus")} Add Ritual</button></div>
+            <div class="field full"><label class="mini-check"><input type="checkbox" name="requiresProof" checked><span>Requires proof note</span></label></div>
+            <div class="field full" style="margin-top: var(--space-3);"><button class="btn" type="submit">${icon("plus")} Add Ritual</button></div>
           </div>
         </form>
-        <div class="panel">
-          <div class="panel-body">
-            <span class="eyebrow">Pool</span>
-            <h3 class="panel-title">Editable rituals</h3>
-            <div class="card-list" style="margin-top: var(--space-4);">
-              ${state.ritualPools.map((ritual) => `
-                <div class="item-card">
-                  <div class="split">
-                    <div>
-                      <h4 class="item-title">${escapeHtml(ritual.title)}</h4>
-                      <p class="meta">${escapeHtml(ritual.duration)} - ${escapeHtml(ritual.tone)}</p>
-                    </div>
-                    <button class="icon-button" title="Delete ritual" data-action="delete-ritual" data-id="${ritual.id}">${icon("trash-2")}</button>
+        <div class="plate">
+          <span class="label">Pool</span>
+          <h3 class="panel-title">Editable rituals</h3>
+          <div class="card-list" style="margin-top: var(--space-4);">
+            ${state.ritualPools.map((ritual) => `
+              <div class="item-card">
+                <div class="split">
+                  <div>
+                    <h4 class="item-title">${escapeHtml(ritual.title)}</h4>
+                    <p class="meta" style="margin-top: 4px;">${escapeHtml(ritual.duration)} - ${escapeHtml(ritual.tone)}</p>
                   </div>
-                  <p class="item-copy">${escapeHtml(ritual.description)}</p>
-                  <div class="pill-row">
-                    <span class="pill hot">${ritual.size}</span>
-                    <span class="pill cool">${ritual.sphere}</span>
-                    <span class="pill">${ritual.difficulty}</span>
-                    ${(ritual.tags || []).map((tag) => `<span class="pill">${escapeHtml(tag)}</span>`).join("")}
-                  </div>
+                  <button class="icon-button" title="Delete ritual" data-action="delete-ritual" data-id="${ritual.id}">${icon("trash-2")}</button>
                 </div>
-              `).join("")}
-            </div>
+                <p class="lore-text" style="font-size: 0.9rem; margin-top: var(--space-3);">${escapeHtml(ritual.description)}</p>
+                <div class="pill-row">
+                  <span class="pill hot">${ritual.size}</span>
+                  <span class="pill cool">${ritual.sphere}</span>
+                  <span class="pill">${ritual.difficulty}</span>
+                  ${(ritual.tags || []).map((tag) => `<span class="pill">${escapeHtml(tag)}</span>`).join("")}
+                </div>
+              </div>
+            `).join("")}
           </div>
         </div>
       </div>
@@ -1240,48 +1252,44 @@ function renderEpicurogotchi() {
     <section class="screen">
       <div class="screen-header">
         <div>
-          <span class="eyebrow">Epicurogotchi sheet</span>
-          <h2 class="screen-title">${escapeHtml(pet.name)}</h2>
+          <span class="label">Epicurogotchi sheet</span>
+          <h2 class="screen-title" style="border:none;">${escapeHtml(pet.name)}</h2>
           <p class="screen-copy">One shared pet for Juanete and Ironmole. Discoveries become ritual material and campaign memory.</p>
         </div>
       </div>
       <div class="grid two">
-        <div class="panel">
-          <div class="panel-body">
-            <div class="hero-art" style="min-height: 420px; border: 0;"><img src="${escapeHtml(pet.image)}" alt="${escapeHtml(pet.name)}"></div>
-            <div class="metric-strip" style="margin-top: var(--space-4);">
-              ${metric("Level", pet.level)}
-              ${metric("Form", pet.form)}
-              ${metric("Findings", pet.discoveries.length)}
-              ${metric("History", pet.formHistory.length)}
-            </div>
-            <div class="cluster" style="margin-top: var(--space-4);">
-              <button class="btn" data-action="level-pet">${icon("arrow-up")} Level Up</button>
-              <label class="btn secondary">${icon("image-up")} Image <input data-action="pet-image" type="file" accept="image/*" hidden></label>
-            </div>
+        <div class="plate">
+          <div class="hero-art" style="min-height: 420px; border: 1px solid var(--color-abyss-500); border-radius: var(--radius-forged);"><img src="${escapeHtml(pet.image)}" alt="${escapeHtml(pet.name)}"></div>
+          <div class="metric-strip" style="margin-top: var(--space-4);">
+            ${metric("Level", pet.level)}
+            ${metric("Form", pet.form)}
+            ${metric("Findings", pet.discoveries.length)}
+            ${metric("History", pet.formHistory.length)}
+          </div>
+          <div style="display: flex; gap: var(--space-3); margin-top: var(--space-4);">
+            <button class="btn" data-action="level-pet">${icon("arrow-up")} Level Up</button>
+            <label class="btn secondary" style="cursor: pointer;">${icon("image-up")} Image <input data-action="pet-image" type="file" accept="image/*" hidden></label>
           </div>
         </div>
-        <div class="panel">
-          <div class="panel-body">
-            <span class="eyebrow">Enjuanetados</span>
-            <h3 class="panel-title">Discoveries</h3>
-            <form class="form-grid" data-form="discovery" style="margin-top: var(--space-4);">
-              <div class="field full"><label>Title</label><input name="title" required></div>
-              <div class="field"><label>Sphere</label><select name="sphere">${SPHERES.map((sphere) => `<option value="${sphere.id}">${sphere.name}</option>`).join("")}</select></div>
-              <div class="field"><label>Ritual size</label><select name="ritualSize">${options(["micro", "macro"], "micro")}</select></div>
-              <div class="field full"><label>Note</label><textarea name="note"></textarea></div>
-              <div class="field full"><button class="btn" type="submit">${icon("plus")} Add Discovery</button></div>
-            </form>
-            <div class="card-list" style="margin-top: var(--space-4);">
-              ${pet.discoveries.length ? pet.discoveries.map((item) => `
-                <div class="item-card">
-                  <h4 class="item-title">${escapeHtml(item.title)}</h4>
-                  <p class="meta">${escapeHtml(item.sphere)} - ${escapeHtml(item.ritualSize)}</p>
-                  <p class="item-copy">${escapeHtml(item.note)}</p>
-                  <button class="btn secondary" data-action="discovery-to-ritual" data-id="${item.id}">${icon("flame-kindling")} Convert to Ritual</button>
-                </div>
-              `).join("") : `<div class="empty-state">No discoveries yet.</div>`}
-            </div>
+        <div class="plate">
+          <span class="label">Enjuanetados</span>
+          <h3 class="panel-title">Discoveries</h3>
+          <form class="form-grid" data-form="discovery" style="margin-top: var(--space-4);">
+            <div class="field full"><label>Title</label><input name="title" required></div>
+            <div class="field"><label>Sphere</label><select name="sphere">${SPHERES.map((sphere) => `<option value="${sphere.id}">${sphere.name}</option>`).join("")}</select></div>
+            <div class="field"><label>Ritual size</label><select name="ritualSize">${options(["micro", "macro"], "micro")}</select></div>
+            <div class="field full"><label>Note</label><textarea name="note"></textarea></div>
+            <div class="field full"><button class="btn" type="submit">${icon("plus")} Add Discovery</button></div>
+          </form>
+          <div class="card-list" style="margin-top: var(--space-4);">
+            ${pet.discoveries.length ? pet.discoveries.map((item) => `
+              <div class="item-card">
+                <h4 class="item-title">${escapeHtml(item.title)}</h4>
+                <p class="meta" style="margin-top: 4px;">${escapeHtml(item.sphere)} - ${escapeHtml(item.ritualSize)}</p>
+                <p class="lore-text" style="font-size: 0.9rem; margin-top: var(--space-2);">${escapeHtml(item.note)}</p>
+                <button class="btn secondary" style="margin-top: var(--space-3);" data-action="discovery-to-ritual" data-id="${item.id}">${icon("flame-kindling")} Convert to Ritual</button>
+              </div>
+            `).join("") : `<div class="empty-state">No discoveries yet.</div>`}
           </div>
         </div>
       </div>
@@ -1296,25 +1304,25 @@ function renderMemory() {
     <section class="screen">
       <div class="screen-header">
         <div>
-          <span class="eyebrow">Memory / files</span>
-          <h2 class="screen-title">Virtual Workspace</h2>
+          <span class="label">Memory / files</span>
+          <h2 class="screen-title" style="border:none;">Virtual Workspace</h2>
           <p class="screen-copy">Markdown lives in browser storage and exports with the campaign bundle.</p>
         </div>
       </div>
-      <div class="panel">
-        <div class="panel-body file-browser">
+      <div class="plate">
+        <div class="file-browser">
           <div class="file-list">
             ${fileNames.map((file) => `<button class="file-tab ${file === ui.currentFile ? "is-active" : ""}" data-file="${escapeHtml(file)}">${escapeHtml(file)}</button>`).join("")}
-            <button class="btn secondary" data-action="new-file">${icon("file-plus")} New File</button>
+            <button class="btn secondary" style="margin-top: var(--space-3);" data-action="new-file">${icon("file-plus")} New File</button>
           </div>
           <div class="stack">
             <div class="field">
               <label>${escapeHtml(ui.currentFile)}</label>
-              <textarea data-input="memory-file" style="min-height: 540px;">${escapeHtml(selected)}</textarea>
+              <textarea data-input="memory-file" style="min-height: 540px; font-family: var(--font-code); color: var(--color-parchment-300); background: #050505;">${escapeHtml(selected)}</textarea>
             </div>
-            <div class="cluster">
+            <div style="display: flex; gap: var(--space-3);">
               <button class="btn" data-action="save-file">${icon("save")} Save File</button>
-              <button class="btn secondary" data-action="delete-file">${icon("trash-2")} Delete File</button>
+              <button class="btn danger" data-action="delete-file">${icon("trash-2")} Delete File</button>
             </div>
           </div>
         </div>
@@ -1330,25 +1338,21 @@ function renderBridgecrux() {
     <section class="screen">
       <div class="screen-header">
         <div>
-          <span class="eyebrow">Bridgecrux</span>
-          <h2 class="screen-title">Engine Room</h2>
+          <span class="label">Bridgecrux</span>
+          <h2 class="screen-title" style="border:none; color: var(--color-bridgecrux);">Engine Room</h2>
           <p class="screen-copy">Editable run instructions and recent model calls. API keys are never stored here.</p>
         </div>
       </div>
-      <div class="panel" style="margin-bottom: var(--space-6);">
-        <div class="panel-body">
-          <span class="eyebrow">Latest LLM runs</span>
-          <h3 class="panel-title">Input / Output / Config</h3>
-          ${runs.length ? `<div class="llm-run-list">${runs.map(renderLlmRun).join("")}</div>` : `<div class="empty-state">No LLM runs recorded yet.</div>`}
-        </div>
+      <div class="plate" style="margin-bottom: var(--space-6); background: #0a0507; border-color: rgba(255,51,102,0.3);">
+        <span class="label" style="color: var(--color-bridgecrux);">Latest LLM runs</span>
+        <h3 class="panel-title" style="color: var(--color-parchment-100);">Input / Output / Config</h3>
+        ${runs.length ? `<div class="llm-run-list" style="margin-top: var(--space-4);">${runs.map(renderLlmRun).join("")}</div>` : `<div class="empty-state">No LLM runs recorded yet.</div>`}
       </div>
       <div class="grid two">
         ${Object.entries(registry).map(([name, content]) => `
-          <div class="panel">
-            <div class="panel-body">
-              <span class="eyebrow">${escapeHtml(name)}</span>
-              <pre class="codebox" style="margin-top: var(--space-3);">${escapeHtml(content)}</pre>
-            </div>
+          <div class="plate" style="background: #050505;">
+            <span class="label" style="color: var(--color-gold-400);">${escapeHtml(name)}</span>
+            <pre class="codebox" style="margin-top: var(--space-3); border: none;">${escapeHtml(content)}</pre>
           </div>
         `).join("")}
       </div>
@@ -1359,7 +1363,7 @@ function renderBridgecrux() {
 function renderLlmRun(run) {
   return `
     <details class="llm-run">
-      <summary>
+      <summary style="color: ${run.validation?.ok ? 'var(--color-success-500)' : 'var(--color-bridgecrux)'};">
         <span>${escapeHtml(run.createdAt || "")}</span>
         <strong>${escapeHtml(run.status || "unknown")} / ${escapeHtml(run.model || run.settings?.modelTier || "model")}</strong>
       </summary>
@@ -1370,25 +1374,29 @@ function renderLlmRun(run) {
           <span class="pill">thinking ${escapeHtml(run.usedConfig?.thinkingLevel || run.usedConfig?.thinkingBudget || run.settings?.thinkingLevel || run.settings?.thinkingBudget || "")}</span>
           <span class="pill">temp ${escapeHtml(run.settings?.temperature ?? "")}</span>
           <span class="pill">out ${escapeHtml(run.usedConfig?.maxOutputTokens ?? run.settings?.maxOutputTokens ?? "")}</span>
-          ${run.fallbackUsed ? `<span class="pill hot">fallback used</span>` : ""}
+          ${run.fallbackUsed ? `<span class="pill danger">fallback used</span>` : ""}
         </div>
         ${run.fallbackReason ? `<div class="status-note warn">${escapeHtml(run.fallbackReason)}</div>` : ""}
         ${run.error ? `<div class="status-note error">${escapeHtml(run.error)}</div>` : ""}
         ${run.validation ? `<div class="status-note ${run.validation.ok ? "" : "error"}">Validation: ${run.validation.ok ? "ok" : escapeHtml(run.validation.issues?.join(" ") || "failed")}</div>` : ""}
         <div class="grid two">
           <div>
-            <span class="eyebrow">Prompt input</span>
+            <span class="label">Prompt input</span>
             <pre class="codebox">${escapeHtml(run.prompt || "")}</pre>
           </div>
           <div>
-            <span class="eyebrow">Model output</span>
-            <pre class="codebox">${escapeHtml(run.output || "")}</pre>
+            <span class="label">Model output</span>
+            <pre class="json-block">${escapeHtml(run.output || "")}</pre>
           </div>
         </div>
       </div>
     </details>
   `;
 }
+
+/* ==========================================================================
+   STATE & LLM LOGIC (Unchanged)
+   ========================================================================== */
 
 function settingsForRoute(tier) {
   const route = routeForTier(tier);
@@ -1440,6 +1448,8 @@ function bindEvents() {
     const data = Object.fromEntries(formData.entries());
     data.mandatoryRitualIds = formData.getAll("mandatoryRitualIds");
     const campaign = createCampaign(state, data);
+    ui.setupForm = {};
+    ui.setupClasses = {};
     state.settings.llmEndpoint = state.settings.llmEndpoint || "http://127.0.0.1:8787/api/gemini";
     resetTurnInputs();
     saveState(state);
@@ -1458,6 +1468,29 @@ function bindEvents() {
 
   document.querySelector("[name='title']")?.addEventListener("input", (event) => {
     ui.setupTitle = event.currentTarget.value;
+  });
+
+  document.querySelectorAll("[data-form='campaign-setup'] select, [data-form='campaign-setup'] input[type='number']").forEach((input) => {
+    input.addEventListener("change", (event) => {
+      ui.setupForm[event.currentTarget.name] = event.currentTarget.value;
+    });
+  });
+
+  document.querySelectorAll("[name='juaneteClass'], [name='ironmoleClass']").forEach((input) => {
+    input.addEventListener("change", (event) => {
+      const playerKey = event.currentTarget.name === "juaneteClass" ? "juanete" : "ironmole";
+      ui.setupForm[event.currentTarget.name] = event.currentTarget.value;
+      ui.setupClasses[playerKey] = event.currentTarget.value;
+      render();
+    });
+  });
+
+  document.querySelectorAll("[name='mandatoryRitualIds']").forEach((input) => {
+    input.addEventListener("change", () => {
+      const count = document.querySelectorAll("[name='mandatoryRitualIds']:checked").length;
+      const badge = document.querySelector("[data-ritual-count]");
+      if (badge) badge.textContent = `${count} selected`;
+    });
   });
 
   document.querySelector("[data-action='complete-ritual']")?.addEventListener("click", () => {
@@ -1953,14 +1986,44 @@ function normalizeCampaignMap(campaign, map) {
   const mandatory = (campaign.mandatoryRitualIds || [])
     .map((id) => state.ritualPools.find((ritual) => ritual.id === id))
     .filter(Boolean);
-  const ritualTurns = normalized.turnPlan.filter((turn) => ["combat", "boss"].includes(turn.challengeType));
+  const usedMandatoryTurns = new Set();
   mandatory.forEach((ritual, index) => {
-    const targetTurn = ritualTurns[index % Math.max(1, ritualTurns.length)];
+    const targetTurn = pickMandatoryRitualTurn(normalized.turnPlan, ritual, campaign, index, usedMandatoryTurns);
     if (!targetTurn) return;
+    usedMandatoryTurns.add(targetTurn.turn);
+    if (!["combat", "boss"].includes(targetTurn.challengeType)) {
+      targetTurn.challengeType = ritual.size === "macro" ? "boss" : "combat";
+      targetTurn.difficultyBand = ritual.size === "macro" ? "boss" : "normal";
+      targetTurn.enemyBrief ||= "Amenaza activada por ritual obligatorio; HP sugerido 10-18; presion tactica clara.";
+      targetTurn.enemyIntent ||= "Forzar una prueba concreta antes de que el grupo pueda avanzar.";
+      targetTurn.outGamePolicy = ritual.size === "macro" ? "boss-gate" : "combat-only";
+    }
     targetTurn.ritualId = ritual.id;
     targetTurn.ritualTitle = ritual.title;
+    targetTurn.ritualSize = ritual.size;
+    targetTurn.rewardIntent = ritual.rewardBias || targetTurn.rewardIntent;
   });
   return normalized;
+}
+
+function stableNumber(value) {
+  return String(value || "").split("").reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) | 0, 0);
+}
+
+function pickMandatoryRitualTurn(turnPlan, ritual, campaign, index, usedTurns) {
+  const sizeMatches = turnPlan.filter((turn) => {
+    if (usedTurns.has(turn.turn)) return false;
+    if (ritual.size === "macro") return turn.challengeType === "boss";
+    return turn.challengeType === "combat";
+  });
+  const combatMatches = turnPlan.filter((turn) => ["combat", "boss"].includes(turn.challengeType) && !usedTurns.has(turn.turn));
+  const anyPlayable = turnPlan.filter((turn) => turn.turn > 1 && !usedTurns.has(turn.turn));
+  const candidates = (sizeMatches.length ? sizeMatches : combatMatches.length ? combatMatches : anyPlayable.length ? anyPlayable : turnPlan.filter((turn) => !usedTurns.has(turn.turn)));
+  if (!candidates.length) return null;
+  const nonOpening = candidates.length > 1 ? candidates.filter((turn) => turn.turn > 1) : candidates;
+  const pool = nonOpening.length ? nonOpening : candidates;
+  const seed = Math.abs(stableNumber(`${campaign.id}:${campaign.title}:${ritual.id}:${index}`));
+  return pool[seed % pool.length];
 }
 
 function phaseForPlannedTurn(turnNumber, maxTurns) {

@@ -2,3 +2,9 @@
 node_modules/
 .playwright-cli/
 output/playwright/*.png
+
+#Bridge
+
+AGENTS.md
+codex-design.md
+bridgecode/

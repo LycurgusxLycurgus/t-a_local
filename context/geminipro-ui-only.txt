@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Totumas & Aventuras | Vanaheim Session</title>
+    
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Lora:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;600;800&family=Fira+Code:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ==========================================================================
+           1. DESIGN TOKENS (The Alchemical Elements)
+           ========================================================================== */
+        :root {
+            /* Palette: The Ember & The Abyss */
+            --color-abyss-900: #0a0908;   /* The void, table surface */
+            --color-abyss-700: #1a1816;   /* Totuma vessel, forged plates */
+            --color-abyss-500: #2d2a27;   /* Borders, inactive bounds */
+            --color-ember-500: #e36414;   /* Intent, action, heat */
+            --color-ember-300: #fb8b24;   /* Hover, critical success */
+            --color-blood-700: #7a1b1b;   /* Enemy intent, damage */
+            --color-gold-400:  #9a8c73;   /* Metadata, trim, sacred lines */
+            --color-gold-200:  #c2b59b;   /* Highlighted trim */
+            --color-parchment-100: #f2e9e4; /* Hero text, primary read */
+            --color-parchment-400: #b5aba5; /* Secondary text, lore */
+            --color-bridgecrux: #ff3366;  /* Debug/Engine stark contrast */
+            
+            /* Typography */
+            --font-epic: 'Cinzel', serif;
+            --font-lore: 'Lora', serif;
+            --font-mech: 'Inter', sans-serif;
+            --font-code: 'Fira Code', monospace;
+
+            /* Physics & Space */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 16px;
+            --space-4: 24px;
+            --space-5: 32px;
+            --space-6: 48px;
+            
+            --radius-forged: 2px; /* Reject the bubbly web */
+            
+            /* Shadows (The Weight) */
+            --shadow-plate: 0 12px 40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(154, 140, 115, 0.1);
+            --shadow-recessed: inset 0 10px 30px rgba(0,0,0,0.9);
+            --glow-ember: 0 0 15px rgba(227, 100, 20, 0.4);
+            --glow-ember-intense: 0 0 30px rgba(251, 139, 36, 0.6);
+            --glow-inner-ember: inset 0 0 20px rgba(227, 100, 20, 0.15);
+        }
+
+        /* ==========================================================================
+           2. RESET & GLOBAL (The Tabletop)
+           ========================================================================== */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--color-abyss-900);
+            color: var(--color-parchment-100);
+            font-family: var(--font-lore);
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden; /* App is a fixed viewport cockpit */
+            background-image: 
+                radial-gradient(circle at 50% 100%, rgba(227, 100, 20, 0.08) 0%, transparent 60%),
+                url('https://www.transparenttextures.com/patterns/dark-leather.png');
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Scrollbars - Thematic */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--color-abyss-900); }
+        ::-webkit-scrollbar-thumb { background: var(--color-abyss-500); border-radius: 0; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--color-gold-400); }
+
+        /* Typography Base */
+        h1, h2, h3, h4 { font-family: var(--font-epic); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: var(--space-3); }
+        h1 { color: var(--color-parchment-100); border-bottom: 1px solid var(--color-gold-400); padding-bottom: var(--space-2); }
+        h2 { color: var(--color-ember-300); }
+        h3 { color: var(--color-gold-400); font-size: 1.1rem; }
+        
+        .label {
+            font-family: var(--font-mech);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--color-gold-400);
+            font-weight: 800;
+        }
+
+        .lore-text { font-family: var(--font-lore); font-style: italic; color: var(--color-parchment-400); }
+        .mech-text { font-family: var(--font-mech); font-size: 0.85rem; }
+
+        /* ==========================================================================
+           3. STRUCTURAL COMPONENTS (The Artifacts)
+           ========================================================================== */
+        
+        /* The Totuma Plate - Primary Container */
+        .plate {
+            background: var(--color-abyss-700);
+            border: 1px solid rgba(154, 140, 115, 0.15);
+            border-top: 2px solid var(--color-abyss-500);
+            border-radius: var(--radius-forged);
+            box-shadow: var(--shadow-plate);
+            padding: var(--space-4);
+            position: relative;
+        }
+        .plate.active-plate { border-top-color: var(--color-ember-500); background: linear-gradient(180deg, rgba(227, 100, 20, 0.05) 0%, var(--color-abyss-700) 40%); }
+
+        /* Inputs & Forms */
+        input, select, textarea {
+            width: 100%;
+            background: var(--color-abyss-900);
+            border: 1px solid var(--color-abyss-500);
+            color: var(--color-parchment-100);
+            font-family: var(--font-mech);
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-forged);
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--color-ember-500); box-shadow: var(--glow-ember); }
+        
+        .form-group { margin-bottom: var(--space-4); }
+        .form-group label { display: block; margin-bottom: var(--space-2); }
+
+        /* Buttons (Resolves) */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            font-family: var(--font-epic);
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            transition: all 0.2s ease-out;
+            border-radius: var(--radius-forged);
+            border: 1px solid transparent;
+            font-weight: 700;
+        }
+        .btn-primary {
+            background: var(--color-ember-500);
+            color: var(--color-abyss-900);
+            box-shadow: var(--glow-ember);
+        }
+        .btn-primary:hover {
+            background: var(--color-ember-300);
+            box-shadow: var(--glow-ember-intense);
+            transform: translateY(-1px);
+        }
+        .btn-primary:active { transform: translateY(1px); }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--color-gold-400);
+            color: var(--color-gold-400);
+        }
+        .btn-secondary:hover {
+            background: rgba(154, 140, 115, 0.1);
+            color: var(--color-gold-200);
+            border-color: var(--color-gold-200);
+        }
+
+        .btn-danger {
+            background: transparent;
+            border: 1px solid var(--color-blood-700);
+            color: var(--color-blood-700);
+        }
+        .btn-danger:hover { background: rgba(122, 27, 27, 0.2); }
+
+        /* Health & Resource Bars */
+        .resource-track {
+            height: 8px;
+            background: var(--color-abyss-900);
+            border: 1px solid var(--color-abyss-500);
+            border-radius: 1px;
+            overflow: hidden;
+            position: relative;
+            margin-top: var(--space-1);
+        }
+        .resource-fill {
+            height: 100%;
+            background: var(--color-ember-500);
+            width: 100%;
+            transition: width 0.4s ease-out;
+            box-shadow: 0 0 10px var(--color-ember-500);
+        }
+        .resource-fill.hp-juanete { background: var(--color-gold-400); box-shadow: 0 0 10px var(--color-gold-400); }
+        .resource-fill.hp-enemy { background: var(--color-blood-700); box-shadow: 0 0 10px var(--color-blood-700); }
+
+        /* ==========================================================================
+           4. LAYOUT ORCHESTRATION (The Views)
+           ========================================================================== */
+        
+        /* Global Navigation (The Top Edge) */
+        .global-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-2) var(--space-4);
+            background: var(--color-abyss-900);
+            border-bottom: 1px solid var(--color-abyss-500);
+            z-index: 100;
+        }
+        .nav-brand { font-family: var(--font-epic); font-size: 1.2rem; color: var(--color-gold-400); letter-spacing: 0.1em; }
+        .nav-links { display: flex; gap: var(--space-4); }
+        .nav-link { 
+            color: var(--color-parchment-400); 
+            text-decoration: none; 
+            font-family: var(--font-mech); 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            letter-spacing: 0.1em; 
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .nav-link:hover, .nav-link.active { color: var(--color-ember-500); }
+        
+        .nav-link.dev-link { color: var(--color-bridgecrux); opacity: 0.5; }
+        .nav-link.dev-link:hover, .nav-link.dev-link.active { opacity: 1; }
+
+        /* View Container */
+        .app-view {
+            flex: 1;
+            display: none;
+            overflow-y: auto;
+            padding: var(--space-4);
+        }
+        .app-view.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ==========================================================================
+           5. SECTION SPECIFICS
+           ========================================================================== */
+
+        /* --- DASHBOARD --- */
+        #view-dashboard .dash-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: var(--space-4);
+            max-width: 1200px;
+            margin: 0 auto;
+            margin-top: 4vh;
+        }
+        .campaign-hero { text-align: center; padding: var(--space-6) var(--space-4); margin-bottom: var(--space-4); }
+
+        /* --- SETUP FORGE --- */
+        #view-setup .forge-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .forge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+
+        /* --- CAMPAIGN PLAY (THE COCKPIT) --- */
+        #view-play { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* Cockpit Top HUD */
+        .cockpit-hud {
+            display: flex;
+            justify-content: space-between;
+            background: var(--color-abyss-700);
+            padding: var(--space-2) var(--space-4);
+            border-bottom: 1px solid var(--color-abyss-500);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            z-index: 10;
+        }
+        .hud-segment { display: flex; flex-direction: column; }
+        .hud-val { font-family: var(--font-epic); font-size: 1.1rem; color: var(--color-parchment-100); }
+
+        /* Cockpit Main Grid */
+        .cockpit-core {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            grid-template-rows: 1fr auto;
+            grid-template-areas: 
+                "left center right"
+                "bottom bottom bottom";
+            gap: 2px; /* Forged plates resting tight against each other */
+            background: var(--color-abyss-900);
+            overflow: hidden;
+        }
+
+        /* Cockpit - Left Rail (Heroes) */
+        .cockpit-left { grid-area: left; background: var(--color-abyss-700); padding: var(--space-3); border-right: 1px solid var(--color-abyss-500); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-3); }
+        .hero-card { background: var(--color-abyss-900); padding: var(--space-3); border: 1px solid var(--color-abyss-500); border-left: 2px solid var(--color-gold-400); border-radius: var(--radius-forged); }
+        .hero-card.ironmole { border-left-color: var(--color-ember-500); }
+        .hero-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin-top: var(--space-2); }
+        .stat-box { background: var(--color-abyss-700); padding: var(--space-1) var(--space-2); text-align: center; border-radius: var(--radius-forged); }
+        .stat-val { font-family: var(--font-mech); font-size: 1.2rem; font-weight: 800; color: var(--color-parchment-100); }
+
+        /* Cockpit - Center (Arena & Narration) */
+        .cockpit-center { 
+            grid-area: center; 
+            background: var(--color-abyss-900); 
+            box-shadow: var(--shadow-recessed);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .gm-narration {
+            padding: var(--space-5);
+            font-size: 1.15rem;
+            color: var(--color-parchment-100);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            flex: 1;
+            overflow-y: auto;
+            background: linear-gradient(180deg, rgba(10,9,8,0.9) 0%, transparent 100%);
+            z-index: 2;
+        }
+        .gm-narration p { margin-bottom: var(--space-3); line-height: 1.8; }
+        .gm-narration p::first-letter { font-family: var(--font-epic); font-size: 2rem; color: var(--color-ember-500); float: left; margin-top: -4px; margin-right: 4px; }
+        
+        /* The Enemy Plate */
+        .enemy-arena {
+            background: linear-gradient(0deg, var(--color-abyss-700) 0%, transparent 100%);
+            padding: var(--space-4);
+            border-top: 1px solid rgba(122, 27, 27, 0.3);
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .enemy-card {
+            width: 80%;
+            background: var(--color-abyss-900);
+            border: 1px solid var(--color-blood-700);
+            padding: var(--space-4);
+            border-radius: var(--radius-forged);
+            box-shadow: 0 10px 30px rgba(122, 27, 27, 0.15);
+            text-align: center;
+            position: relative;
+        }
+        .enemy-intent {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--color-blood-700);
+            color: var(--color-parchment-100);
+            padding: 4px 12px;
+            font-family: var(--font-mech);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-radius: var(--radius-forged);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+
+        /* Cockpit - Right Rail (Mechanics/Assists) */
+        .cockpit-right { grid-area: right; background: var(--color-abyss-700); padding: var(--space-3); border-left: 1px solid var(--color-abyss-500); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-3); }
+        
+        .artifact-link {
+            display: block;
+            background: rgba(154, 140, 115, 0.05);
+            border: 1px dashed var(--color-gold-400);
+            padding: var(--space-3);
+            text-align: center;
+            text-decoration: none;
+            color: var(--color-gold-400);
+            border-radius: var(--radius-forged);
+            transition: all 0.2s;
+        }
+        .artifact-link:hover { background: rgba(154, 140, 115, 0.15); color: var(--color-gold-200); }
+
+        .battle-log { background: var(--color-abyss-900); padding: var(--space-2); border-radius: var(--radius-forged); font-family: var(--font-mech); font-size: 0.8rem; color: var(--color-parchment-400); flex: 1; overflow-y: auto; }
+        .log-entry { margin-bottom: var(--space-2); border-left: 1px solid var(--color-abyss-500); padding-left: var(--space-2); }
+        .log-entry.consequence { border-left-color: var(--color-ember-500); color: var(--color-parchment-100); }
+
+        /* Cockpit - Bottom Action Bar */
+        .cockpit-bottom {
+            grid-area: bottom;
+            background: var(--color-abyss-900);
+            border-top: 1px solid var(--color-abyss-500);
+            padding: var(--space-3) var(--space-4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+            z-index: 20;
+        }
+        
+        .action-selections { display: flex; gap: var(--space-4); flex: 1; }
+        .action-slot { display: flex; flex-direction: column; }
+        .action-slot select { width: 250px; background: var(--color-abyss-700); border-color: var(--color-abyss-500); }
+        
+        .command-cluster { display: flex; gap: var(--space-3); align-items: center; }
+        
+        /* The Dice Component */
+        .die-roll {
+            width: 48px;
+            height: 48px;
+            border: 2px solid var(--color-ember-500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-epic);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-ember-500);
+            transform: rotate(45deg);
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(227, 100, 20, 0.05);
+        }
+        .die-roll span { transform: rotate(-45deg); }
+        .die-roll:hover { background: var(--color-ember-500); color: var(--color-abyss-900); box-shadow: var(--glow-ember); }
+        .die-roll.rolling { animation: rollAnim 0.5s infinite linear; pointer-events: none; }
+        @keyframes rollAnim { 100% { transform: rotate(405deg); } }
+
+        /* --- RITUAL LIBRARY --- */
+        #view-rituals .ritual-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+        
+        /* --- BRIDGECRUX (Engine/Debug) --- */
+        #view-bridgecrux { background: #050505; }
+        #view-bridgecrux * { font-family: var(--font-code); }
+        .bridge-header { border-bottom: 1px solid var(--color-bridgecrux); color: var(--color-bridgecrux); padding-bottom: var(--space-4); margin-bottom: var(--space-4); }
+        .json-block { background: rgba(255, 51, 102, 0.05); border: 1px solid rgba(255, 51, 102, 0.2); padding: var(--space-3); color: #fff; font-size: 0.85rem; white-space: pre-wrap; overflow-x: auto; margin-bottom: var(--space-4); }
+
+    </style>
+</head>
+<body>
+
+    <!-- Global Nav (The Top Edge) -->
+    <nav class="global-nav">
+        <div class="nav-brand">Totumas & Aventuras</div>
+        <div class="nav-links">
+            <a class="nav-link active" onclick="switchView('view-dashboard')">The Hearth</a>
+            <a class="nav-link" onclick="switchView('view-setup')">Forge Campaign</a>
+            <a class="nav-link" onclick="switchView('view-play')">The Crucible</a>
+            <a class="nav-link" onclick="switchView('view-rituals')">Tome of Rituals</a>
+            <a class="nav-link dev-link" onclick="switchView('view-bridgecrux')">Bridgecrux</a>
+        </div>
+    </nav>
+
+    <!-- =========================================================
+         VIEW 1: DASHBOARD (The Hearth)
+         ========================================================= -->
+    <section id="view-dashboard" class="app-view active">
+        <div class="plate campaign-hero active-plate" style="max-width: 800px; margin: 0 auto;">
+            <p class="label" style="margin-bottom: var(--space-2);">Active Session</p>
+            <h1 style="border:none; font-size: 2.5rem; color: var(--color-ember-500);">Shadows of Vanaheim</h1>
+            <p class="lore-text" style="font-size: 1.2rem; margin-bottom: var(--space-4);">Turn 14 &middot; Exploration Phase</p>
+            
+            <div style="display: flex; gap: var(--space-3); justify-content: center; margin-bottom: var(--space-4);">
+                <div class="stat-box" style="width: 150px;">
+                    <p class="label">Juanete</p>
+                    <div class="resource-track"><div class="resource-fill hp-juanete" style="width: 100%;"></div></div>
+                </div>
+                <div class="stat-box" style="width: 150px;">
+                    <p class="label">Ironmole</p>
+                    <div class="resource-track"><div class="resource-fill" style="width: 85%;"></div></div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="switchView('view-play')">Resume Campaign</button>
+        </div>
+
+        <div class="dash-grid">
+            <div class="plate">
+                <h3>Recent Consequences</h3>
+                <div class="log-entry consequence">
+                    <p class="mech-text">The Draugr ambush was thwarted, but the Ironmole's shield arm is weakened.</p>
+                </div>
+                <div class="log-entry">
+                    <p class="mech-text">Discovered the Ashen Monolith.</p>
+                </div>
+            </div>
+            <div class="plate">
+                <h3>Active Ritual Gate</h3>
+                <p class="lore-text" style="margin-bottom: var(--space-3);">The gate to the inner sanctum remains sealed. A proof of bond is required.</p>
+                <button class="btn btn-secondary" style="width: 100%; font-size: 0.8rem;">View Ritual: "The Shared Cup"</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         VIEW 2: SETUP (Forge Campaign)
+         ========================================================= -->
+    <section id="view-setup" class="app-view">
+        <div class="forge-container plate">
+            <h2>Forge a New Saga</h2>
+            <p class="lore-text" style="margin-bottom: var(--space-4);">Establish the parameters of the narrative engine. This will overwrite the current active session.</p>
+            
+            <div class="forge-grid">
+                <div class="form-group">
+                    <label class="label">Campaign Title</label>
+                    <input type="text" value="Echoes of the World Tree" />
+                </div>
+                <div class="form-group">
+                    <label class="label">Campaign Type</label>
+                    <select>
+                        <option>Dark Fantasy (Vanaheim core)</option>
+                        <option>Mythic Exploration</option>
+                        <option>Survival Horror</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="label">Target Turns (Length)</label>
+                    <input type="number" value="20" />
+                </div>
+                <div class="form-group">
+                    <label class="label">Combat Weight (%)</label>
+                    <input type="number" value="60" />
+                </div>
+            </div>
+
+            <h3 style="margin-top: var(--space-4);">The Heroes</h3>
+            <div class="forge-grid">
+                <div class="form-group">
+                    <label class="label">Juanete Class</label>
+                    <input type="text" value="Skald of Ash" />
+                </div>
+                <div class="form-group">
+                    <label class="label">Ironmole Class</label>
+                    <input type="text" value="Forge-Bound Sentinel" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="label">Campaign Seed (Prompt / Context Base)</label>
+                <textarea rows="4" placeholder="Let the small model generate this, or dictate fate manually..."></textarea>
+                <div style="text-align: right; margin-top: var(--space-2);">
+                    <button class="btn btn-secondary" style="font-size: 0.7rem; padding: 6px 12px;">Generate Seed (Local LLM)</button>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--color-abyss-500); padding-top: var(--space-4); text-align: right;">
+                <button class="btn btn-primary">Ignite Campaign Map</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         VIEW 3: CAMPAIGN PLAY (The Crucible/Cockpit)
+         ========================================================= -->
+    <section id="view-play" class="app-view">
+        
+        <!-- TOP HUD -->
+        <div class="cockpit-hud">
+            <div class="hud-segment">
+                <span class="label">Campaign</span>
+                <span class="hud-val">Shadows of Vanaheim</span>
+            </div>
+            <div class="hud-segment" style="align-items: center;">
+                <span class="label">Phase (Turn 14)</span>
+                <span class="hud-val" style="color: var(--color-ember-300);">Combat (Unresolved)</span>
+            </div>
+            <div class="hud-segment" style="align-items: flex-end;">
+                <span class="label">Active Gate</span>
+                <span class="hud-val" style="color: var(--color-gold-400);">None required</span>
+            </div>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="cockpit-core">
+            
+            <!-- LEFT: HEROES -->
+            <div class="cockpit-left">
+                <!-- Juanete Card -->
+                <div class="hero-card">
+                    <h3 style="margin-bottom: 4px;">Juanete</h3>
+                    <p class="label">Skald of Ash</p>
+                    <div style="margin-top: var(--space-2);">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="label">HP</span>
+                            <span class="label">12 / 15</span>
+                        </div>
+                        <div class="resource-track"><div class="resource-fill hp-juanete" style="width: 80%;"></div></div>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat-box"><p class="label">FUE</p><p class="stat-val">10</p></div>
+                        <div class="stat-box"><p class="label">INT</p><p class="stat-val">14</p></div>
+                        <div class="stat-box"><p class="label">CAR</p><p class="stat-val">16</p></div>
+                        <div class="stat-box"><p class="label">MAG</p><p class="stat-val">12</p></div>
+                    </div>
+                </div>
+
+                <!-- Ironmole Card -->
+                <div class="hero-card ironmole">
+                    <h3 style="margin-bottom: 4px;">Ironmole</h3>
+                    <p class="label">Forge-Bound Sentinel</p>
+                    <div style="margin-top: var(--space-2);">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="label">HP</span>
+                            <span class="label" id="ironmole-hp-text">18 / 20</span>
+                        </div>
+                        <div class="resource-track"><div class="resource-fill" id="ironmole-hp-bar" style="width: 90%;"></div></div>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat-box"><p class="label">FUE</p><p class="stat-val">18</p></div>
+                        <div class="stat-box"><p class="label">INT</p><p class="stat-val">9</p></div>
+                        <div class="stat-box"><p class="label">CAR</p><p class="stat-val">11</p></div>
+                        <div class="stat-box"><p class="label">MAG</p><p class="stat-val">14</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CENTER: ARENA & GM -->
+            <div class="cockpit-center">
+                <div class="gm-narration">
+                    <p>The heavy iron doors shatter beneath the weight of the Draugr Warlord's frost-covered hammer. Splinters of ancient wood scatter across the ritual floor.</p>
+                    <p>He locks his hollow, glowing blue eyes onto Ironmole, recognizing the scent of forge-fire. He lifts the maul, the air dropping in temperature instantly.</p>
+                    <p>"Your flames die today, interloper," the GM engine narrates implicitly through the chill in the air. Determine your stance.</p>
+                </div>
+
+                <div class="enemy-arena">
+                    <div class="enemy-card">
+                        <div class="enemy-intent">Targeting: Ironmole (Heavy Smash)</div>
+                        <h2 style="color: var(--color-blood-700); margin-bottom: 4px;">Draugr Warlord</h2>
+                        <p class="label" style="margin-bottom: var(--space-3);">Objective: Survive & Break Guard</p>
+                        
+                        <div style="width: 100%; max-width: 300px; margin: 0 auto;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span class="label">Vanguard HP</span>
+                                <span class="label">34 / 50</span>
+                            </div>
+                            <div class="resource-track" style="height: 12px;"><div class="resource-fill hp-enemy" style="width: 68%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: RITUALS & LOG -->
+            <div class="cockpit-right">
+                
+                <div class="plate" style="padding: var(--space-3);">
+                    <h3 style="margin-bottom: var(--space-2);">Epicurogotchi</h3>
+                    <p class="lore-text" style="font-size: 0.8rem; margin-bottom: var(--space-3);">Consult the artifact for deep inventory and persistent boons.</p>
+                    <a href="#" class="artifact-link" target="_blank">
+                        &#x2728; Open External Sheet
+                    </a>
+                </div>
+
+                <div class="plate" style="padding: var(--space-3); flex: 1; display: flex; flex-direction: column;">
+                    <h3 style="margin-bottom: var(--space-2);">Battle Log</h3>
+                    <div class="battle-log">
+                        <div class="log-entry consequence">
+                            Rnd 1: Juanete casts 'Ash Blind'. Draugr accuracy reduced.
+                        </div>
+                        <div class="log-entry">
+                            Rnd 1: Ironmole strikes for 12 Damage.
+                        </div>
+                        <div class="log-entry consequence" style="border-color: var(--color-blood-700); color: var(--color-blood-700);">
+                            Rnd 1: Draugr retaliates. Ironmole deflects partially (Takes 2 DMG).
+                        </div>
+                        <div class="log-entry">
+                            Rnd 2: Awaiting Actions...
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- BOTTOM: ACTION BAR -->
+            <div class="cockpit-bottom">
+                <div class="action-selections">
+                    <div class="action-slot">
+                        <label class="label" style="margin-bottom: 4px;">Juanete's Action</label>
+                        <select>
+                            <option>Sing the 'Dirge of Embers' (Buff FUE)</option>
+                            <option>Distract with illusion (Check INT)</option>
+                            <option>Strike with Dagger (Check FUE)</option>
+                        </select>
+                    </div>
+                    <div class="action-slot">
+                        <label class="label" style="margin-bottom: 4px;">Ironmole's Action</label>
+                        <select>
+                            <option>Brace for Impact (Defend)</option>
+                            <option selected>Sundering Strike (Check FUE)</option>
+                            <option>Protect Juanete (Draw Aggro)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="command-cluster">
+                    <div style="text-align: right; margin-right: var(--space-3);">
+                        <p class="label">Current Roll Req</p>
+                        <p class="mech-text" style="color: var(--color-ember-300);">FUE Check (DC 14)</p>
+                    </div>
+                    
+                    <!-- Die Roll Action -->
+                    <div class="die-roll" id="physical-die" onclick="mockRoll()">
+                        <span id="die-result">20</span>
+                    </div>
+
+                    <button class="btn btn-primary" style="padding: 16px 32px; font-size: 1.1rem;">Resolve Turn</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         VIEW 4: RITUAL LIBRARY
+         ========================================================= -->
+    <section id="view-rituals" class="app-view">
+        <h1 style="border:none; margin-bottom: 0;">Tome of Rituals</h1>
+        <p class="lore-text">Out-of-game bindings that unlock narrative gates.</p>
+        
+        <div class="ritual-grid">
+            
+            <div class="plate">
+                <h3>The Shared Cup</h3>
+                <div style="display: flex; gap: 8px; margin-bottom: var(--space-3);">
+                    <span class="label" style="background: var(--color-abyss-900); padding: 2px 6px; border: 1px solid var(--color-gold-400);">Sphere: Trust</span>
+                    <span class="label" style="background: var(--color-abyss-900); padding: 2px 6px; border: 1px solid var(--color-gold-400);">Size: Minor</span>
+                </div>
+                <p class="lore-text" style="margin-bottom: var(--space-3);">Brew a physical cup of tea or coffee. Both players must drink from it before continuing.</p>
+                <p class="mech-text" style="color: var(--color-ember-300);">Reward Bias: +Healing / Respite</p>
+            </div>
+
+            <div class="plate">
+                <h3>Confession of Ash</h3>
+                <div style="display: flex; gap: 8px; margin-bottom: var(--space-3);">
+                    <span class="label" style="background: var(--color-abyss-900); padding: 2px 6px; border: 1px solid var(--color-blood-700);">Sphere: Truth</span>
+                    <span class="label" style="background: var(--color-abyss-900); padding: 2px 6px; border: 1px solid var(--color-blood-700);">Size: Major</span>
+                </div>
+                <p class="lore-text" style="margin-bottom: var(--space-3);">One player must reveal a minor truth about their day they haven't shared yet.</p>
+                <p class="mech-text" style="color: var(--color-ember-300);">Reward Bias: +Intelligence / Meta-knowledge</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- =========================================================
+         VIEW 5: BRIDGECRUX (Debug / Engine Room)
+         ========================================================= -->
+    <section id="view-bridgecrux" class="app-view">
+        <h2 class="bridge-header">SYS.BRIDGECRUX // ENGINE MONITOR</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+            <div>
+                <p style="color: var(--color-parchment-400); margin-bottom: 8px;">> LATEST PROMPT PAYLOAD</p>
+                <div class="json-block">{
+  "system": "You are the GM for Vanaheim Session...",
+  "state": {
+    "turn": 14,
+    "combatActive": true,
+    "enemy": "Draugr Warlord"
+  },
+  "playerActions": [
+    { "id": "juanete", "action": "Strike with Dagger", "roll": 12 },
+    { "id": "ironmole", "action": "Sundering Strike", "roll": 18 }
+  ]
+}</div>
+            </div>
+            
+            <div>
+                <p style="color: var(--color-parchment-400); margin-bottom: 8px;">> ROUTER / FALLBACK LOG</p>
+                <div class="json-block">[INFO] Requesting Heavy Model (GPT-4)
+[INFO] Latency 1200ms
+[OK] Valid JSON structure received.
+[OK] Parsed 'actionOptions' correctly.
+[WARN] 'ritualRequest' key missing, assuming null.</div>
+                
+                <button class="btn btn-danger" style="font-family: var(--font-code); margin-top: var(--space-3);">FORCE MODEL RESTART</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================
+         INTERACTIONS (Mocks for the Frontend)
+         ========================================================= -->
+    <script>
+        // Simple view router
+        function switchView(viewId) {
+            // Update Nav Links
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Hide all views
+            document.querySelectorAll('.app-view').forEach(view => {
+                view.classList.remove('active');
+            });
+
+            // Show target view
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        // Mock Die Roll & Damage Demo (To show intentional motion/feedback)
+        function mockRoll() {
+            const die = document.getElementById('physical-die');
+            const span = document.getElementById('die-result');
+            
+            if(die.classList.contains('rolling')) return;
+            
+            span.innerText = "?";
+            die.classList.add('rolling');
+            
+            setTimeout(() => {
+                die.classList.remove('rolling');
+                const roll = Math.floor(Math.random() * 20) + 1;
+                span.innerText = roll;
+                
+                // If it's a bad roll, demonstrate state changing (Ironmole takes damage)
+                if(roll < 10) {
+                    const hpBar = document.getElementById('ironmole-hp-bar');
+                    const hpText = document.getElementById('ironmole-hp-text');
+                    
+                    hpBar.style.width = "40%";
+                    hpBar.style.background = "var(--color-blood-700)";
+                    hpBar.style.boxShadow = "0 0 10px var(--color-blood-700)";
+                    hpText.innerText = "8 / 20";
+                    hpText.style.color = "var(--color-blood-700)";
+                    
+                    // Flash the card border
+                    const card = document.querySelector('.hero-card.ironmole');
+                    card.style.borderColor = "var(--color-blood-700)";
+                    setTimeout(() => {
+                        card.style.borderColor = "var(--color-abyss-500)";
+                    }, 500);
+                }
+            }, 800);
+        }
+    </script>
+</body>
+</html>

@@ -29,10 +29,7 @@ export const CLASS_NAMES = [
 
 const defaultFiles = {
   "memory.md": "# Memory\n\n- Piccolo represents the shared Epicurogotchi.\n- Campaigns should create concrete discoveries, actions, pleasures, experiments, or memories.\n",
-  "assistants.md": "# Assistants Router\n\nUse heavy tasks for campaign architecture and repair, medium tasks for GM turns, and small tasks for validation and compaction.\n",
-  "heavy_tasks.md": "# Heavy Tasks\n\n- Build act maps.\n- Repair campaign coherence.\n- Produce final recaps and durable memory deltas.\n",
-  "medium_tasks.md": "# Medium Tasks\n\n- Generate GM turns.\n- Narrate consequences from code results.\n- Integrate selected rituals diegetically.\n",
-  "small_tasks.md": "# Small Tasks\n\n- Validate required sections.\n- Extract challenge signals.\n- Compact recent turns.\n",
+  "general-functions.md": "# General Functions\n\n- Code routes models by task; models do not choose routes.\n- Heavy creates campaign maps.\n- Medium writes playable GM turns.\n- Small repairs invalid JSON and generates setup seeds.\n- Combat mechanics, stats, DCs, HP, rituals, and turn gates are code-owned.\n",
   "campaigns/active.md": "# Active Campaign\n\nNo active campaign yet.\n",
   "rituals/library.md": "# Ritual Library\n\nThe app state owns ritual records; this file is for notes.\n",
   "characters/vanaheim.md": "# Vanaheim Companions\n\nDin, Segismundo, Hagen, and Elektra track sphere growth.\n",

@@ -306,9 +306,11 @@ export function setCurrentTurnDraft(state, campaign, validation, rawText = "") {
     difficultyBand: plannedTurn?.difficultyBand || signal.difficultyBand,
     primaryStat: plannedTurn?.primaryStat || signal.primaryStat,
     ritual: plannedRitual || undefined,
+    rewardIntent: plannedTurn?.rewardIntent || plannedTurn?.rewardHint,
+    enemyIntent: plannedTurn?.enemyIntent,
     enemies: normalizeEnemies(payload?.combatRequest?.enemies),
     title: payload?.combatRequest?.title || plannedTurn?.beat || (signal.challengeType === "boss" ? "Boss Gate" : "GM Combat"),
-    objective: payload?.combatRequest?.objective || plannedTurn?.enemyBrief || "Resolve the threat created by the GM scene."
+    objective: payload?.combatRequest?.objective || plannedTurn?.enemyBrief || "Break the threat in the current scene."
   }) : null;
   const ritual = encounter?.ritual || null;
   if (ritual) {

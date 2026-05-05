@@ -1,180 +1,121 @@
-/* 
- * ═══════════════════════════════════════════════════════════════
- * LAYOUT SYSTEM: Asymmetric Convergence
- * ═══════════════════════════════════════════════════════════════
- * 
- * We reject the standard dashboard template (sidebar + equal main).
- * Instead, we use an asymmetric grid where the sidebar is a narrow 
- * ritual panel (268px — deliberately breaking 8px orthodoxy) and 
- * the main area breathes with cavernous negative space.
- * 
- * Spatial composition uses rhythm breaks: some sections are tight 
- * and dense (the sidebar), others are monumentally spacious.
- * ═══════════════════════════════════════════════════════════════
- */
-
-.layout {
-  display: grid;
+.layout,
+.app-table {
   min-height: 100vh;
-  /* 268px breaks the 8px grid — a small but perceptible act of rebellion */
-  grid-template-columns: 268px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
 }
 
-/* ─── Sidebar: The Ritual Panel ───
-   Dense, dark, and contained. It feels like a physical object 
-   pressed against the left edge — a codex spine. */
-.sidebar {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow: auto;
-  padding: var(--space-5) var(--space-4);
-  border-right: var(--border-faint);
+.global-nav {
+  position: relative;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: minmax(230px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 64px;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-abyss-500);
   background:
-    linear-gradient(180deg, rgba(26, 24, 22, 0.98), rgba(10, 9, 8, 0.96)),
-    var(--color-abyss-800);
-  /* Subtle inner shadow suggests depth — like pages pressed together */
-  box-shadow: inset -8px 0 24px rgba(0, 0, 0, 0.4);
+    radial-gradient(circle at 50% 0%, rgba(227, 100, 20, 0.06), transparent 72%),
+    var(--color-abyss-900);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.62);
 }
 
-.brand-block {
+.nav-brand {
   display: grid;
-  gap: var(--space-3);
-  padding-bottom: var(--space-5);
-  border-bottom: var(--border-faint);
-}
-
-/* 
-   Font-family assignments for UI micro-text:
-   We use JetBrains Mono for all functional labels, creating a 
-   "technical manual" voice that contrasts with the epic display 
-   and intimate body text.
-*/
-.brand-kicker,
-.eyebrow,
-.label,
-.meta,
-.stat-label,
-.nav-button,
-.btn,
-.field label,
-.pill {
-  font-family: var(--font-ui);
-}
-
-.brand-kicker,
-.eyebrow,
-.label,
-.stat-label {
+  gap: 2px;
   color: var(--color-gold-400);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.brand-title {
-  margin: 0;
-  color: var(--color-parchment-100);
   font-family: var(--font-display);
-  /* Asymmetric clamp: min is large, max is dramatic */
-  font-size: clamp(1.4rem, 3.8vw, 1.9rem);
-  line-height: 1.05;
-  letter-spacing: 0.02em;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1.1;
   text-transform: uppercase;
 }
 
-.brand-subtitle {
-  margin: 0;
-  color: var(--color-parchment-300);
-  font-size: 0.92rem;
-  line-height: 1.55;
+.nav-brand small {
+  max-width: 290px;
+  overflow: hidden;
+  color: var(--color-parchment-400);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
   font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
 }
 
-.nav {
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-5) 0;
-}
-
-/* ─── Main: The Hearth ───
-   Asymmetric padding creates an uneven gravitational pull — 
-   more space at the bottom suggests a floor, more on the right 
-   suggests an open horizon. */
-.main {
-  min-width: 0;
-  padding: var(--space-5) var(--space-6) var(--space-7) var(--space-5);
-}
-
-.topbar {
+.nav-links,
+.nav-actions,
+.topbar-actions,
+.cluster {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin: 0 auto var(--space-6);
-  max-width: 1440px;
+  gap: var(--space-3);
 }
 
-.topbar-actions {
-  display: flex;
+.nav-links {
+  justify-content: center;
   flex-wrap: wrap;
+}
+
+.nav-actions {
   justify-content: flex-end;
-  gap: var(--space-3);
+}
+
+.main,
+.app-view {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-4);
 }
 
 .screen {
-  max-width: 1440px;
+  width: min(100%, 1280px);
   margin: 0 auto;
 }
 
-/* Screen header uses flex-end alignment to create an asymmetric 
-   relationship between title and actions — they don't center, 
-   they tension. */
 .screen-header {
   display: flex;
-  align-items: flex-end;
+  align-items: end;
   justify-content: space-between;
-  gap: var(--space-5);
-  margin-bottom: var(--space-6);
+  gap: var(--space-4);
+  margin: var(--space-3) 0 var(--space-5);
 }
 
 .screen-title {
   margin: var(--space-2) 0 0;
   color: var(--color-parchment-100);
   font-family: var(--font-display);
-  /* Extreme scale: small screens get 2rem, large get 4.2rem */
-  font-size: clamp(2rem, 5.5vw, 4.2rem);
+  font-size: clamp(2.4rem, 6.2vw, 4.8rem);
+  font-weight: 900;
+  letter-spacing: 0.03em;
   line-height: 0.95;
-  letter-spacing: -0.01em;
   text-transform: uppercase;
 }
 
 .screen-copy {
-  max-width: 780px;
-  margin: var(--space-4) 0 0;
-  color: var(--color-parchment-300);
-  font-size: 1.05rem;
+  max-width: 850px;
+  margin: var(--space-3) 0 0;
+  color: var(--color-parchment-400);
+  font-size: 1.08rem;
   line-height: 1.65;
 }
 
-/* ─── Grid System: Uneven Distributions ───
-   We reject equal fractions. Asymmetry creates visual interest 
-   and prevents the "generic card grid" antipattern. */
 .grid {
   display: grid;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
-/* 55/45 split — the golden ratio approximated, but deliberately 
-   weighted toward content, not sidebar */
 .grid.two {
-  grid-template-columns: minmax(0, 1.22fr) minmax(320px, 0.78fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
 }
 
 .grid.three {
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.95fr) minmax(0, 0.95fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .grid.four {
@@ -186,96 +127,75 @@
   gap: var(--space-4);
 }
 
-.cluster {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-}
-
 .split {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
+}
+
+.field.full {
+  grid-column: 1 / -1;
 }
 
 .mobile-only {
   display: none;
 }
 
-/* ─── Rhythm Break Utilities ───
-   Use these to create dramatic pauses in vertical flow. */
-.rhythm-tight {
-  gap: var(--space-3);
-}
+@media (max-width: 1180px) {
+  body {
+    overflow: auto;
+  }
 
-.rhythm-loose {
-  gap: var(--space-7);
-}
-
-.rhythm-cavernous {
-  gap: var(--space-8);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE: Collapse with Character
-   ═══════════════════════════════════════════════════════════════ */
-
-@media (max-width: 1120px) {
-  .layout {
+  .global-nav {
     grid-template-columns: 1fr;
   }
 
-  .sidebar {
-    position: static;
-    height: auto;
-    padding: var(--space-4);
-    border-right: none;
-    border-bottom: var(--border-faint);
-    box-shadow: inset 0 -8px 24px rgba(0, 0, 0, 0.4);
+  .nav-links,
+  .nav-actions {
+    justify-content: flex-start;
   }
 
-  .nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .main,
+  .app-view {
+    overflow: visible;
   }
 
-  /* On medium screens, we still preserve some asymmetry */
   .grid.two,
   .grid.three,
   .grid.four {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
-  .main {
-    padding: var(--space-4) var(--space-4) var(--space-6) var(--space-4);
+  .main,
+  .app-view {
+    padding: var(--space-3);
   }
 
-  .topbar,
   .screen-header,
-  .split {
+  .split,
+  .nav-actions {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .topbar-actions {
-    justify-content: stretch;
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 
-  .nav,
-  .grid.two,
-  .grid.three,
-  .grid.four {
-    grid-template-columns: 1fr;
+  .screen-title {
+    font-size: clamp(2rem, 13vw, 3.2rem);
   }
 
   .mobile-only {
     display: initial;
-  }
-  
-  .screen-title {
-    font-size: clamp(1.6rem, 8vw, 2.4rem);
   }
 }

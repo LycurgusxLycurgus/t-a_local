@@ -1,374 +1,331 @@
-/* 
- * ═══════════════════════════════════════════════════════════════
- * COMPONENTS: Forged, Not Rendered
- * ═══════════════════════════════════════════════════════════════
- * 
- * Every component must pass the defensibility test. If it would 
- * blend into a corpus of similar interfaces, it is rejected.
- * 
- * Key distinctive choices:
- * - Nav active states use LEFT-BORDER ACCENTS, not full boxes.
- * - Focus states use ARCANE TEAL (dissonance), not Ember.
- * - Buttons track mouse position for radial ember hover.
- * - Cards ("Totumas") have top-gradient accents with Resonance.
- * - Progress tracks use tri-color gradients (purple/ember/gold).
- * ═══════════════════════════════════════════════════════════════
- */
+h1,
+h2,
+h3,
+h4,
+.panel-title,
+.screen-title,
+.brand-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
 
-/* ─────────────────────────────────────────────────────────────
-   NAVIGATION
-   ───────────────────────────────────────────────────────────── */
+.eyebrow,
+.label,
+.meta,
+.stat-label,
+.pill,
+.nav-link,
+.btn,
+.field label {
+  font-family: var(--font-ui);
+}
 
-.nav-button,
+.eyebrow,
+.label,
+.stat-label,
+.field label {
+  color: var(--color-gold-400);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.meta,
+.muted,
+.item-copy,
+.screen-copy {
+  color: var(--color-parchment-400);
+}
+
+.nav-link,
 .btn,
 .icon-button {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-3);
-  min-height: 44px;
-  border-radius: var(--radius-worn);
+  gap: var(--space-2);
+  min-height: 42px;
+  border-radius: var(--radius-forged);
   text-decoration: none;
-  overflow: hidden;
-  transition: 
+  transition: transform var(--duration-swift) var(--ease-ember),
     border-color var(--duration-swift) var(--ease-ember),
     background var(--duration-swift) var(--ease-ember),
     color var(--duration-swift) var(--ease-ember),
-    box-shadow var(--duration-swift) var(--ease-ember),
-    transform var(--duration-swift) var(--ease-ember);
+    box-shadow var(--duration-swift) var(--ease-ember);
 }
 
-/* Nav buttons: The Codex Index
-   Left-aligned, technical, precise. The active state uses a 
-   3px left border + gradient fade — distinctive and directional. */
-.nav-button {
-  justify-content: flex-start;
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
+.nav-link {
   border: 1px solid transparent;
-  border-left: 3px solid transparent;
   background: transparent;
-  color: var(--color-parchment-300);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1.3;
-}
-
-.nav-button.is-active {
-  border-left-color: var(--color-ember-500);
-  border-top-color: transparent;
-  border-right-color: transparent;
-  border-bottom-color: transparent;
-  background: linear-gradient(90deg, rgba(227, 100, 20, 0.12), transparent 80%);
-  color: var(--color-parchment-100);
-  box-shadow: inset 0 0 18px rgba(227, 100, 20, 0.08);
-}
-
-.nav-button:hover,
-.btn.secondary:hover,
-.icon-button:hover {
-  border-color: rgba(227, 100, 20, 0.5);
-  background: rgba(227, 100, 20, 0.08);
-  color: var(--color-parchment-100);
-}
-
-.nav-button svg,
-.btn svg,
-.icon-button svg {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 auto;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   BUTTONS: The Resolves
-   ───────────────────────────────────────────────────────────── */
-
-/* Primary Resolve: Ember core
-   We add a radial-gradient overlay that tracks mouse position 
-   via CSS custom properties (--mouse-x, --mouse-y). This creates 
-   a "heat follows attention" effect that is impossible to achieve 
-   with static CSS alone. */
-.btn {
-  padding: 0 var(--space-5);
-  border: 1px solid var(--color-ember-500);
-  background: var(--color-ember-500);
-  color: var(--color-abyss-950);
-  font-family: var(--font-ui);
-  font-size: 0.76rem;
+  color: var(--color-parchment-400);
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
 }
 
-.btn::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle 80px at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(251, 139, 36, 0.35),
-    transparent
-  );
-  opacity: 0;
-  transition: opacity var(--duration-deliberate) var(--ease-ember);
-  pointer-events: none;
+.nav-link:hover,
+.nav-link.active {
+  color: var(--color-ember-500);
+}
+
+.nav-link.active {
+  text-shadow: var(--glow-ember);
+}
+
+.nav-link.dev-link {
+  color: var(--color-bridgecrux);
+  opacity: 0.55;
+}
+
+.nav-link.dev-link:hover,
+.nav-link.dev-link.active {
+  opacity: 1;
+}
+
+.nav-link svg,
+.btn svg,
+.icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  background: var(--color-ember-500);
+  color: var(--color-abyss-900);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: var(--glow-ember);
 }
 
 .btn:hover {
   background: var(--color-ember-300);
-  border-color: var(--color-ember-300);
   box-shadow: var(--glow-ember-strong);
-  transform: translateY(-2px);
-}
-
-.btn:hover::after {
-  opacity: 1;
+  transform: translateY(-1px);
 }
 
 .btn:active {
-  transform: translateY(0);
-  transition-duration: var(--duration-instant);
+  transform: translateY(1px);
 }
 
-.btn.secondary {
-  border-color: rgba(154, 140, 115, 0.35);
-  background: transparent;
-  color: var(--color-parchment-100);
-}
-
-.btn.ghost {
-  border-color: transparent;
+.btn.secondary,
+.btn.btn-secondary,
+.btn.ghost,
+.icon-button {
+  border-color: var(--color-gold-400);
   background: transparent;
   color: var(--color-gold-400);
+  box-shadow: none;
 }
 
-.btn.danger {
-  border-color: rgba(158, 42, 43, 0.7);
-  background: rgba(158, 42, 43, 0.16);
-  color: var(--color-parchment-100);
+.btn.secondary:hover,
+.btn.btn-secondary:hover,
+.btn.ghost:hover,
+.icon-button:hover {
+  border-color: var(--color-gold-300);
+  background: rgba(154, 140, 115, 0.1);
+  color: var(--color-gold-300);
+  box-shadow: none;
 }
 
-.btn.danger:hover {
-  background: rgba(158, 42, 43, 0.28);
-  box-shadow: 0 0 22px rgba(158, 42, 43, 0.25);
+.btn.danger,
+.btn-danger {
+  border-color: var(--color-blood-700);
+  background: transparent;
+  color: var(--color-blood-700);
+  box-shadow: none;
 }
 
-.btn:disabled {
+.btn:disabled,
+.icon-button:disabled {
   cursor: not-allowed;
-  opacity: 0.4;
+  opacity: 0.42;
   transform: none;
   box-shadow: none;
-  filter: grayscale(0.6);
 }
 
-.icon-button {
-  width: 44px;
-  padding: 0;
-  border: var(--border-faint);
-  background: rgba(10, 9, 8, 0.35);
-  color: var(--color-parchment-300);
+.btn-large {
+  min-height: 56px;
+  padding: 0 var(--space-5);
+  font-size: 0.95rem;
 }
 
-.icon-button:hover {
-  border-color: rgba(227, 100, 20, 0.45);
-  color: var(--color-ember-300);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   PANELS: The Totumas (Vessels)
-   ───────────────────────────────────────────────────────────── */
-
-.panel {
+.panel,
+.plate {
   position: relative;
   overflow: hidden;
-  border: var(--border-faint);
-  border-radius: var(--radius-worn);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.024), transparent),
-    var(--color-abyss-700);
-  box-shadow: var(--shadow-artifact);
+  border: 1px solid rgba(154, 140, 115, 0.15);
+  border-top: 2px solid var(--color-abyss-500);
+  border-radius: var(--radius-forged);
+  background: var(--color-abyss-700);
+  box-shadow: var(--shadow-plate);
 }
 
-/* The top accent line: a gradient that shifts from Resonance 
-   (purple) through Ember (orange) to Gold. This is the 
-   "intentional dissonance" made visible — the vessel is not 
-   merely warm, it contains otherworldly energy. */
-.panel::before {
+.panel::before,
+.plate::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--color-resonance-400), var(--color-ember-500), var(--color-gold-500));
-  opacity: 0.85;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(227, 100, 20, 0.035) 0%, transparent 58%),
+    repeating-linear-gradient(35deg, rgba(242, 233, 228, 0.01) 0 1px, transparent 1px 5px);
+}
+
+.panel.active-plate,
+.plate.active-plate,
+.scene-panel,
+.arena-panel {
+  border-top-color: var(--color-ember-500);
+  background: linear-gradient(180deg, rgba(227, 100, 20, 0.05) 0%, var(--color-abyss-700) 38%);
 }
 
 .panel-body {
-  padding: var(--space-5);
+  position: relative;
+  z-index: 1;
+  padding: var(--space-4);
 }
 
-/* Variant: Monumental padding for hero/content panels */
 .panel-body.lofty {
-  padding: var(--space-7);
+  padding: var(--space-6);
 }
 
 .panel-title {
   margin: var(--space-2) 0 0;
-  font-family: var(--font-display);
+  color: var(--color-parchment-100);
   font-size: 1.35rem;
-  line-height: 1.1;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
 }
 
-/* ─── Hero Panel ───
-   Asymmetric 55/45 split. The art side is dominant but not equal. */
 .hero-panel {
-  min-height: 420px;
+  min-height: 540px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.82fr);
-  gap: var(--space-6);
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
 }
 
 .hero-copy {
   display: grid;
   align-content: space-between;
   gap: var(--space-6);
-  min-width: 0;
-  padding: var(--space-2) 0;
 }
 
 .hero-art {
-  overflow: hidden;
   min-height: 360px;
-  border-left: var(--border-faint);
-  background: var(--color-abyss-950);
-  position: relative;
-}
-
-.hero-art::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 60%, rgba(10, 9, 8, 0.6));
-  pointer-events: none;
+  border-left: 1px solid var(--color-abyss-500);
+  background: var(--color-abyss-900);
 }
 
 .hero-art img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(0.85) contrast(1.08) brightness(0.95);
-  transition: transform var(--duration-ritual) var(--ease-ember),
-              filter var(--duration-ritual) var(--ease-ember);
+  filter: contrast(1.06) saturate(0.85) brightness(0.88);
 }
 
-.hero-art:hover img {
-  transform: scale(1.03);
-  filter: saturate(0.95) contrast(1.1) brightness(1);
+.track,
+.resource-track,
+.hp-track {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid var(--color-abyss-500);
+  border-radius: 1px;
+  background: var(--color-abyss-900);
 }
 
-/* ─── Metric Strip ───
-   Four columns on desktop, but metrics are intentionally uneven 
-   in internal padding to create density variation. */
-.metric-strip {
+.track-fill,
+.resource-fill,
+.hp-track span {
+  display: block;
+  height: 100%;
+  width: var(--track-value, 0%);
+  background: var(--color-ember-500);
+  box-shadow: 0 0 10px var(--color-ember-500);
+  transition: width var(--duration-deliberate) var(--ease-ignite);
+}
+
+.hp-track span {
+  width: 100%;
+  background: var(--color-gold-400);
+  box-shadow: 0 0 10px var(--color-gold-400);
+}
+
+.hp-track.danger span,
+.resource-fill.hp-enemy {
+  background: var(--color-blood-700);
+  box-shadow: 0 0 10px var(--color-blood-700);
+}
+
+.metric-strip,
+.top-hud,
+.stat-grid,
+.companion-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
+.top-hud {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: var(--space-4);
+}
+
+.metric,
+.stat-box,
+.item-card,
+.pilot-card,
+.enemy-card,
+.assist-card,
+.character-state {
+  border: 1px solid var(--color-abyss-500);
+  border-radius: var(--radius-forged);
+  background: var(--color-abyss-900);
+}
+
 .metric {
   min-height: 100px;
-  padding: var(--space-4) var(--space-4) var(--space-5);
-  border: var(--border-faint);
-  border-radius: var(--radius-worn);
-  background: rgba(10, 9, 8, 0.35);
-  transition: border-color var(--duration-swift) var(--ease-ember),
-              box-shadow var(--duration-swift) var(--ease-ember);
+  padding: var(--space-3);
 }
 
-.metric:hover {
-  border-color: rgba(227, 100, 20, 0.25);
-  box-shadow: var(--shadow-intimate);
-}
-
-.metric strong {
+.metric strong,
+.stat-box strong,
+.stat-val {
   display: block;
-  margin-top: var(--space-3);
+  margin-top: var(--space-2);
+  color: var(--color-parchment-100);
   font-family: var(--font-display);
   font-size: 1.55rem;
   line-height: 1;
-  color: var(--color-parchment-100);
 }
 
-.metric .label {
-  display: block;
-  margin-bottom: var(--space-1);
-}
-
-/* ─── Track / Progress ───
-   Tri-color gradient: Resonance → Ember → Gold.
-   This is the "Relationship Sync" made visually complex. */
-.track {
-  width: 100%;
-  height: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(154, 140, 115, 0.22);
-  border-radius: 999px;
-  background: rgba(5, 5, 4, 0.76);
-}
-
-.track-fill {
-  height: 100%;
-  width: var(--track-value, 0%);
-  background: linear-gradient(90deg, var(--color-resonance-400), var(--color-ember-500), var(--color-gold-500));
-  box-shadow: var(--glow-ember);
-  transition: width var(--duration-deliberate) var(--ease-ignite);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   CARDS & LISTS
-   ───────────────────────────────────────────────────────────── */
-
-.card-list {
+.card-list,
+.character-state-grid,
+.roll-grid,
+.file-list,
+.llm-run-list {
   display: grid;
   gap: var(--space-3);
 }
 
-.item-card {
-  padding: var(--space-4);
-  border: var(--border-faint);
-  border-radius: var(--radius-worn);
-  background: rgba(10, 9, 8, 0.34);
-  transition: border-color var(--duration-swift) var(--ease-ember),
-              box-shadow var(--duration-swift) var(--ease-ember),
-              transform var(--duration-swift) var(--ease-ember);
-}
-
-.item-card:hover {
-  border-color: rgba(154, 140, 115, 0.3);
-  box-shadow: var(--shadow-intimate);
-  transform: translateY(-1px);
+.item-card,
+.character-state {
+  padding: var(--space-3);
 }
 
 .item-card.is-live {
-  border-color: rgba(227, 100, 20, 0.55);
-  box-shadow: inset 0 0 20px rgba(227, 100, 20, 0.08), var(--glow-ember);
-  animation: ember-pulse 4s var(--ease-ember) infinite;
-}
-
-@keyframes ember-pulse {
-  0%, 100% {
-    box-shadow: inset 0 0 20px rgba(227, 100, 20, 0.08), 0 0 0 rgba(227, 100, 20, 0);
-  }
-  50% {
-    box-shadow: inset 0 0 24px rgba(227, 100, 20, 0.12), 0 0 18px rgba(227, 100, 20, 0.1);
-  }
+  border-color: var(--color-ember-500);
+  box-shadow: var(--glow-inner-ember);
 }
 
 .item-title {
@@ -377,456 +334,365 @@
   font-family: var(--font-ui);
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.item-copy,
-.muted,
-.meta {
-  color: var(--color-parchment-300);
 }
 
 .item-copy {
   margin: var(--space-3) 0 0;
-  line-height: 1.6;
-  font-size: 0.98rem;
-}
-
-.meta {
-  font-size: 0.8rem;
-  line-height: 1.45;
-  letter-spacing: 0.02em;
 }
 
 .pill-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
 }
 
 .pill {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 0 var(--space-3);
-  border: 1px solid rgba(154, 140, 115, 0.28);
-  border-radius: var(--radius-chipped);
-  color: var(--color-parchment-300);
-  background: rgba(5, 5, 4, 0.38);
-  font-family: var(--font-ui);
-  font-size: 0.68rem;
-  font-weight: 700;
+  min-height: 24px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-abyss-500);
+  background: var(--color-abyss-900);
+  color: var(--color-parchment-400);
+  font-size: 0.66rem;
+  font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .pill.hot {
-  border-color: rgba(227, 100, 20, 0.55);
+  border-color: var(--color-ember-500);
   color: var(--color-ember-300);
-  background: rgba(227, 100, 20, 0.08);
 }
 
 .pill.cool {
-  border-color: rgba(46, 111, 115, 0.58);
-  color: #8fd1d4;
-  background: rgba(46, 111, 115, 0.1);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   FORMS
-   ───────────────────────────────────────────────────────────── */
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-5);
+  border-color: var(--color-gold-400);
+  color: var(--color-gold-300);
 }
 
 .field {
   display: grid;
+  gap: var(--space-2);
+}
+
+.field input,
+.field select,
+.field textarea,
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--color-abyss-500);
+  border-radius: var(--radius-forged);
+  background: var(--color-abyss-900);
+  color: var(--color-parchment-100);
+  padding: var(--space-2) var(--space-3);
+  outline: none;
+  font-family: var(--font-ui);
+}
+
+.field textarea,
+textarea {
+  min-height: 132px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-ember-500);
+  box-shadow: var(--glow-ember);
+}
+
+.field input::placeholder,
+.field textarea::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: rgba(181, 171, 165, 0.48);
+  font-style: italic;
+}
+
+.game-table {
+  align-items: start;
+}
+
+.scene-text,
+.prompt-output,
+.codebox,
+.json-block {
+  white-space: pre-wrap;
+}
+
+.scene-text {
+  margin: var(--space-4) 0 0;
+  color: var(--color-parchment-100);
+  font-size: 1.12rem;
+  line-height: 1.8;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.scene-text::first-letter {
+  float: left;
+  margin: -4px 6px 0 0;
+  color: var(--color-ember-500);
+  font-family: var(--font-display);
+  font-size: 2.1rem;
+}
+
+.scene-text.compact {
+  max-height: 220px;
+  overflow: auto;
+  font-size: 0.96rem;
+}
+
+.combat-screen {
+  width: 100%;
+  max-width: none;
+  height: calc(100vh - 112px);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.combat-screen .screen-header {
+  display: none;
+}
+
+.combat-cockpit {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 300px;
+  gap: 2px;
+  background: var(--color-abyss-900);
+  overflow: hidden;
+}
+
+.cockpit-rail {
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
+  padding: var(--space-3);
+  border-inline: 1px solid var(--color-abyss-500);
+  background: var(--color-abyss-700);
 }
 
-.field.full {
-  grid-column: 1 / -1;
+.arena-stack {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-abyss-900);
+  box-shadow: var(--shadow-recessed);
 }
 
-.field label {
+.pilot-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-left: 2px solid var(--color-gold-400);
+}
+
+.pilot-card:nth-child(2) {
+  border-left-color: var(--color-ember-500);
+}
+
+.pilot-card h3,
+.enemy-card h4 {
+  margin: 0;
+  color: var(--color-parchment-100);
+  font-size: 1.05rem;
+}
+
+.stat-grid.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stat-grid.compact .stat-box {
+  min-height: 58px;
+  padding: var(--space-2);
+}
+
+.enemy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.enemy-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-color: var(--color-blood-700);
+}
+
+.enemy-card.is-defeated {
+  opacity: 0.52;
+  filter: grayscale(0.75);
+}
+
+.arena-intent {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border-left: 3px solid var(--color-blood-700);
+  background: rgba(122, 27, 27, 0.14);
+}
+
+.assist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.assist-card {
+  min-height: 82px;
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2);
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.choice-column {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.action-choice {
+  min-height: 112px;
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-abyss-500);
+  border-radius: var(--radius-forged);
+  background: var(--color-abyss-900);
+  color: var(--color-parchment-100);
+  text-align: left;
+}
+
+.action-choice:hover,
+.action-choice.is-selected {
+  border-color: var(--color-ember-500);
+  background: rgba(227, 100, 20, 0.1);
+  box-shadow: var(--glow-ember);
+}
+
+.action-choice strong {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+}
+
+.action-choice small,
+.action-choice span {
+  color: var(--color-parchment-400);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+}
+
+.ritual-gate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: start;
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: 1px dashed var(--color-gold-400);
+  border-radius: var(--radius-forged);
+  background: rgba(154, 140, 115, 0.06);
+}
+
+.ritual-gate.is-complete {
+  border-color: var(--color-success-500);
+  background: rgba(118, 148, 106, 0.12);
+}
+
+.ritual-check,
+.mini-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--color-abyss-500);
+  background: var(--color-abyss-900);
+  color: var(--color-parchment-100);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+}
+
+.ritual-check input,
+.mini-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-ember-500);
+}
+
+.ritual-check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.optional-write {
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--color-abyss-500);
+  padding-top: var(--space-3);
+}
+
+.optional-write summary,
+.battle-log summary {
   color: var(--color-gold-400);
-  font-size: 0.72rem;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.field input,
-.field select,
-.field textarea {
-  width: 100%;
-  min-height: 46px;
-  border: 1px solid rgba(154, 140, 115, 0.28);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.58);
-  color: var(--color-parchment-100);
-  padding: var(--space-3) var(--space-4);
-  outline: none;
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  transition: border-color var(--duration-swift) var(--ease-ember),
-              box-shadow var(--duration-swift) var(--ease-ember);
-}
-
-.field textarea {
-  min-height: 140px;
-  resize: vertical;
-  line-height: 1.6;
-}
-
-/* 
-   CRITICAL DISSONANCE: Focus states use Arcane Teal, not Ember.
-   This creates visual tension — the system responds with cold 
-   precision while user actions burn warm. It prevents the 
-   monotony of an all-orange interface.
-*/
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-  border-color: var(--color-arcane-300);
-  box-shadow: 
-    0 0 0 3px rgba(46, 111, 115, 0.12),
-    var(--glow-arcane);
-}
-
-.field input::placeholder,
-.field textarea::placeholder {
-  color: rgba(154, 140, 115, 0.45);
-  font-style: italic;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   LOGS & SCENES
-   ───────────────────────────────────────────────────────────── */
-
-.log-list {
-  display: grid;
-  gap: var(--space-5);
-  max-height: 640px;
-  overflow: auto;
-  padding-right: var(--space-3);
-}
-
-/* Custom scrollbar for webkit — thin, dark, ember thumb */
-.log-list::-webkit-scrollbar {
-  width: 6px;
-}
-.log-list::-webkit-scrollbar-track {
-  background: rgba(5, 5, 4, 0.3);
-  border-radius: 3px;
-}
-.log-list::-webkit-scrollbar-thumb {
-  background: rgba(227, 100, 20, 0.35);
-  border-radius: 3px;
-}
-.log-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(227, 100, 20, 0.55);
-}
-
-.turn-log {
-  border-left: 3px solid rgba(227, 100, 20, 0.7);
-  padding: var(--space-4) var(--space-5);
-  background: rgba(10, 9, 8, 0.28);
-  border-radius: 0 var(--radius-worn) var(--radius-worn) 0;
-  transition: background var(--duration-swift) var(--ease-ember),
-              border-color var(--duration-swift) var(--ease-ember);
-}
-
-.turn-log:hover {
-  background: rgba(10, 9, 8, 0.4);
-  border-left-color: var(--color-ember-500);
-}
-
-.turn-log pre,
-.prompt-output,
-.codebox,
-.scene-text {
-  white-space: pre-wrap;
-  overflow: auto;
-  margin: 0;
-  padding: var(--space-4);
-  border: 1px solid rgba(154, 140, 115, 0.18);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.58);
-  color: var(--color-parchment-100);
-  font-family: var(--font-ui);
-  font-size: 0.84rem;
-  line-height: 1.6;
-}
-
-.scene-panel {
-  min-height: 540px;
-}
-
-.scene-text {
-  margin-top: var(--space-5);
-  max-height: none;
-  min-height: 400px;
-  font-family: var(--font-body);
-  font-size: 1.06rem;
-  line-height: 1.75;
-  letter-spacing: 0.01em;
-}
-
-.scene-scroll {
-  display: grid;
-  gap: var(--space-4);
-  margin-top: var(--space-5);
-}
-
-.scene-section {
-  padding: var(--space-5);
-  border: 1px solid rgba(154, 140, 115, 0.18);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.48);
-  box-shadow: inset 0 0 18px rgba(227, 100, 20, 0.04);
-  transition: box-shadow var(--duration-swift) var(--ease-ember),
-              border-color var(--duration-swift) var(--ease-ember);
-}
-
-.scene-section:hover {
-  border-color: rgba(154, 140, 115, 0.28);
-  box-shadow: inset 0 0 22px rgba(227, 100, 20, 0.07);
-}
-
-.scene-section.is-muted {
-  display: none;
-}
-
-.scene-section-label {
-  display: block;
-  margin-bottom: var(--space-3);
-  color: var(--color-gold-400);
-  font-family: var(--font-ui);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.scene-section p,
-.scene-lead {
-  margin: 0;
-  color: var(--color-parchment-100);
-  font-size: 1.04rem;
-  line-height: 1.72;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   CHOICES: The Crossroads
-   ───────────────────────────────────────────────────────────── */
-
-.choice-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-5);
-  margin-top: var(--space-6);
-}
-
-.choice-column {
-  display: grid;
-  gap: var(--space-4);
-  align-content: start;
-}
-
-.action-choice {
-  display: grid;
-  gap: var(--space-3);
-  min-height: 120px;
-  padding: var(--space-5);
-  border: 1px solid rgba(154, 140, 115, 0.25);
-  border-radius: var(--radius-worn);
-  background: rgba(10, 9, 8, 0.46);
-  color: var(--color-parchment-100);
-  text-align: left;
-  cursor: pointer;
-  box-shadow: inset 0 0 18px rgba(227, 100, 20, 0.04);
-  transition: border-color var(--duration-swift) var(--ease-ember),
-              background var(--duration-swift) var(--ease-ember),
-              box-shadow var(--duration-swift) var(--ease-ember),
-              transform var(--duration-swift) var(--ease-ember);
-}
-
-.action-choice:hover,
-.action-choice.is-selected {
-  border-color: rgba(227, 100, 20, 0.72);
-  background: rgba(227, 100, 20, 0.1);
-  box-shadow: var(--glow-ember), inset 0 0 18px rgba(227, 100, 20, 0.1);
-  transform: translateY(-2px);
-}
-
-.action-choice:active {
-  transform: translateY(0);
-  transition-duration: var(--duration-instant);
-}
-
-.action-choice strong {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.action-choice small,
-.action-choice span {
-  color: var(--color-parchment-300);
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  line-height: 1.45;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   RITUAL GATE
-   ───────────────────────────────────────────────────────────── */
-
-.ritual-gate {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-5);
-  align-items: start;
-  margin-top: var(--space-6);
-  padding: var(--space-5);
-  border: 1px solid rgba(227, 100, 20, 0.45);
-  border-radius: var(--radius-worn);
-  background:
-    linear-gradient(180deg, rgba(227, 100, 20, 0.12), rgba(10, 9, 8, 0.3)),
-    rgba(5, 5, 4, 0.55);
-  box-shadow: inset 0 0 18px rgba(227, 100, 20, 0.1);
-}
-
-.ritual-gate.is-complete {
-  border-color: rgba(118, 148, 106, 0.7);
-  background: rgba(118, 148, 106, 0.12);
-  box-shadow: inset 0 0 18px rgba(118, 148, 106, 0.1);
-}
-
-.ritual-gate h4 {
-  margin: var(--space-2) 0 var(--space-3);
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  line-height: 1.15;
-  text-transform: uppercase;
-}
-
-.ritual-gate p {
-  margin: 0;
-  color: var(--color-parchment-300);
-  line-height: 1.6;
-}
-
-.ritual-check {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 46px;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid rgba(154, 140, 115, 0.28);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.45);
-  color: var(--color-parchment-100);
-  font-family: var(--font-ui);
-  font-weight: 800;
-  font-size: 0.82rem;
-  cursor: pointer;
-  transition: border-color var(--duration-swift) var(--ease-ember),
-              box-shadow var(--duration-swift) var(--ease-ember);
-}
-
-.ritual-check:hover {
-  border-color: rgba(227, 100, 20, 0.45);
-}
-
-.ritual-check input {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--color-ember-500);
-  cursor: pointer;
-}
-
-.optional-write {
-  margin-top: var(--space-6);
-  border-top: var(--border-faint);
-  padding-top: var(--space-4);
-}
-
-.optional-write summary {
-  color: var(--color-gold-400);
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color var(--duration-swift) var(--ease-ember);
-}
-
-.optional-write summary:hover {
-  color: var(--color-ember-300);
-}
-
-.roll-grid {
-  display: grid;
-  gap: var(--space-4);
-  margin-top: var(--space-5);
-}
-
 .roll-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-4);
+  gap: var(--space-3);
   align-items: center;
-  padding: var(--space-4);
-  border: 1px solid rgba(154, 140, 115, 0.22);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.42);
+  padding: var(--space-3);
+  border: 1px solid var(--color-abyss-500);
+  background: var(--color-abyss-900);
 }
 
 .roll-card.has-roll {
-  border-color: rgba(118, 148, 106, 0.56);
-  background: rgba(118, 148, 106, 0.1);
-}
-
-.roll-card h4 {
-  margin: var(--space-2) 0;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  line-height: 1.2;
-  text-transform: uppercase;
+  border-color: var(--color-success-500);
 }
 
 .roll-result {
-  min-width: 96px;
-  padding: var(--space-3);
-  border: 1px solid rgba(154, 140, 115, 0.24);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.5);
+  min-width: 84px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-abyss-500);
   text-align: center;
 }
 
 .roll-result strong {
   display: block;
+  color: var(--color-ember-300);
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 1.8rem;
   line-height: 1;
-}
-
-.roll-result span,
-.roll-result small {
-  display: block;
-  color: var(--color-parchment-300);
-  font-family: var(--font-ui);
-  font-size: 0.72rem;
-  line-height: 1.35;
 }
 
 .dice-button {
@@ -834,471 +700,207 @@
   justify-self: start;
 }
 
-.character-state-grid {
-  display: grid;
-  gap: var(--space-4);
-  margin-top: var(--space-5);
-}
-
-.character-state {
-  display: grid;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid rgba(154, 140, 115, 0.2);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.35);
-}
-
-.character-state h4 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  text-transform: uppercase;
-}
-
-.ritual-check-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.mini-check {
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-start;
-  padding: var(--space-3);
-  border: 1px solid rgba(154, 140, 115, 0.2);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.34);
-  color: var(--color-parchment-100);
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  line-height: 1.35;
-}
-
-.mini-check input {
-  margin-top: 2px;
-  accent-color: var(--color-ember-500);
-}
-
-.mini-check small {
-  display: block;
-  color: var(--color-parchment-300);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   UTILITY COMPONENTS
-   ───────────────────────────────────────────────────────────── */
-
-.btn-large {
-  min-height: 56px;
-  padding: 0 var(--space-6);
-  font-size: 0.82rem;
-}
-
-.prelude-body {
-  display: grid;
-  gap: var(--space-5);
-  align-content: start;
-}
-
-.sheet-card {
-  display: grid;
-  gap: var(--space-3);
-  padding: var(--space-6);
-  border: 1px solid rgba(227, 100, 20, 0.5);
-  border-radius: var(--radius-worn);
-  background: rgba(227, 100, 20, 0.09);
-  box-shadow: inset 0 0 18px rgba(227, 100, 20, 0.1);
-  color: var(--color-parchment-100);
-  text-decoration: none;
-  transition: transform var(--duration-swift) var(--ease-ember),
-              box-shadow var(--duration-swift) var(--ease-ember),
-              border-color var(--duration-swift) var(--ease-ember);
-}
-
-.sheet-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(227, 100, 20, 0.7);
-  box-shadow: inset 0 0 24px rgba(227, 100, 20, 0.15), var(--glow-ember);
-}
-
-.sheet-card span {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  color: var(--color-ember-300);
-  font-family: var(--font-ui);
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.sheet-card strong {
-  font-family: var(--font-display);
-  font-size: 1.55rem;
-  line-height: 1.05;
-  text-transform: uppercase;
-}
-
-.sheet-card small,
-.prelude-check small {
-  color: var(--color-parchment-300);
-  font-family: var(--font-body);
-  font-size: 0.92rem;
-  font-weight: 400;
-  line-height: 1.5;
-}
-
-.prompt-output {
-  min-height: 260px;
-  max-height: 540px;
-}
-
-.status-note {
-  padding: var(--space-4) var(--space-5);
-  border: 1px solid rgba(154, 140, 115, 0.24);
-  border-radius: var(--radius-worn);
-  background: rgba(46, 111, 115, 0.12);
-  color: var(--color-parchment-300);
-  font-size: 0.92rem;
-  line-height: 1.55;
-}
-
-.status-note.warn {
-  border-color: rgba(227, 100, 20, 0.42);
-  background: rgba(227, 100, 20, 0.09);
-}
-
-.status-note.error {
-  border-color: rgba(158, 42, 43, 0.72);
-  background: rgba(158, 42, 43, 0.16);
-}
-
-/* ─── Companion Grid ─── */
-.companion-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-
-.companion-symbol {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  margin-bottom: var(--space-4);
-  border: 1px solid rgba(154, 140, 115, 0.28);
-  border-radius: var(--radius-worn);
-  color: var(--color-ember-300);
-  background: rgba(227, 100, 20, 0.08);
-  transition: border-color var(--duration-swift) var(--ease-ember),
-              box-shadow var(--duration-swift) var(--ease-ember),
-              transform var(--duration-swift) var(--ease-ember);
-}
-
-.companion-symbol:hover {
-  border-color: rgba(227, 100, 20, 0.5);
-  box-shadow: var(--glow-ember);
-  transform: translateY(-2px);
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.stat-box {
-  min-height: 80px;
-  padding: var(--space-4);
-  border: var(--border-faint);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.35);
-  transition: border-color var(--duration-swift) var(--ease-ember);
-}
-
-.stat-box:hover {
-  border-color: rgba(154, 140, 115, 0.3);
-}
-
-.stat-box strong {
-  display: block;
-  margin-top: var(--space-2);
-  font-family: var(--font-display);
-  font-size: 1.45rem;
-  line-height: 1;
-}
-
-.stat-box .stat-label {
-  display: block;
-  margin-bottom: var(--space-1);
-}
-
-/* ─── Timing Game ─── */
 .timing-game {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 
 .timing-track {
   position: relative;
-  height: 48px;
+  height: 44px;
   overflow: hidden;
-  border: 1px solid rgba(154, 140, 115, 0.24);
-  border-radius: var(--radius-worn);
-  background:
-    linear-gradient(90deg, 
-      rgba(158, 42, 43, 0.45), 
-      rgba(227, 100, 20, 0.2), 
-      rgba(118, 148, 106, 0.55), 
-      rgba(227, 100, 20, 0.2), 
-      rgba(158, 42, 43, 0.45)
-    ),
-    rgba(5, 5, 4, 0.7);
+  border: 1px solid var(--color-abyss-500);
+  background: linear-gradient(90deg, rgba(122, 27, 27, 0.55), rgba(227, 100, 20, 0.2), rgba(118, 148, 106, 0.5), rgba(227, 100, 20, 0.2), rgba(122, 27, 27, 0.55));
 }
 
 .timing-target {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 46%;
+  inset: 0 auto 0 46%;
   width: 8%;
-  background: rgba(242, 233, 228, 0.14);
-  border-left: 1px solid rgba(242, 233, 228, 0.5);
-  border-right: 1px solid rgba(242, 233, 228, 0.5);
+  border-inline: 1px solid var(--color-parchment-100);
+  background: rgba(242, 233, 228, 0.12);
 }
 
 .timing-marker {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: var(--marker-x, 0%);
+  inset: 0 auto 0 var(--marker-x, 0%);
   width: 4px;
   transform: translateX(-2px);
   background: var(--color-ember-300);
-  box-shadow: 0 0 20px rgba(251, 139, 36, 0.8);
-  transition: left var(--duration-swift) linear;
+  box-shadow: var(--glow-ember-strong);
 }
 
-/* ─── File Browser ─── */
+.prelude-body,
+.sheet-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.sheet-card,
+.artifact-link {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-gold-400);
+  background: rgba(154, 140, 115, 0.05);
+  color: var(--color-gold-400);
+  text-align: center;
+  text-decoration: none;
+}
+
+.sheet-card:hover,
+.artifact-link:hover {
+  background: rgba(154, 140, 115, 0.14);
+  color: var(--color-gold-300);
+}
+
 .file-browser {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
-  gap: var(--space-6);
-}
-
-.file-list {
-  display: grid;
-  gap: var(--space-3);
-  align-content: start;
+  gap: var(--space-4);
 }
 
 .file-tab {
-  justify-content: flex-start;
   width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: var(--border-faint);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.34);
-  color: var(--color-parchment-300);
-  font-family: var(--font-ui);
-  font-size: 0.82rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-abyss-500);
+  background: var(--color-abyss-900);
+  color: var(--color-parchment-400);
   text-align: left;
-  cursor: pointer;
-  transition: border-color var(--duration-swift) var(--ease-ember),
-              background var(--duration-swift) var(--ease-ember),
-              color var(--duration-swift) var(--ease-ember);
 }
 
 .file-tab.is-active {
-  border-color: rgba(227, 100, 20, 0.55);
-  color: var(--color-parchment-100);
-  background: rgba(227, 100, 20, 0.1);
-  box-shadow: inset 0 0 12px rgba(227, 100, 20, 0.06);
-}
-
-.file-tab:hover:not(.is-active) {
-  border-color: rgba(154, 140, 115, 0.4);
-  background: rgba(10, 9, 8, 0.5);
-}
-
-.empty-state {
-  padding: var(--space-7);
-  border: 1px dashed rgba(154, 140, 115, 0.3);
-  border-radius: var(--radius-worn);
-  color: var(--color-parchment-300);
-  text-align: center;
-  font-style: italic;
-}
-
-/* ─── Toast ───
-   Slides in from the right with an ember glow. */
-.toast {
-  position: fixed;
-  right: var(--space-6);
-  bottom: var(--space-6);
-  z-index: 100;
-  max-width: min(460px, calc(100vw - 32px));
-  padding: var(--space-5);
-  border: var(--border-lit);
-  border-radius: var(--radius-worn);
-  background: rgba(10, 9, 8, 0.96);
-  box-shadow: var(--shadow-artifact), var(--glow-ember);
-  color: var(--color-parchment-100);
-  font-family: var(--font-ui);
-  font-size: 0.86rem;
-  line-height: 1.55;
-  transform: translateX(120%);
-  transition: transform var(--duration-deliberate) var(--ease-ignite);
-}
-
-.toast.is-visible {
-  transform: translateX(0);
-}
-
-/* ─── Advanced Panel ─── */
-.advanced-panel {
-  display: block;
-  border: var(--border-faint);
-  border-radius: var(--radius-worn);
-  background: rgba(10, 9, 8, 0.3);
-  overflow: hidden;
-}
-
-.advanced-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  cursor: pointer;
-  color: var(--color-parchment-100);
-  font-family: var(--font-ui);
-  font-weight: 800;
-  font-size: 0.82rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: background var(--duration-swift) var(--ease-ember);
-}
-
-.advanced-summary:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.advanced-summary span {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.advanced-summary small {
-  color: var(--color-gold-400);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.advanced-summary::marker {
+  border-color: var(--color-ember-500);
   color: var(--color-ember-300);
 }
 
-.llm-run-list {
-  display: grid;
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-}
-
-.llm-run {
-  border: var(--border-faint);
-  border-radius: var(--radius-worn);
-  background: rgba(5, 5, 4, 0.34);
-  overflow: hidden;
-}
-
-.llm-run summary {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  cursor: pointer;
+.prompt-output,
+.codebox,
+.json-block {
+  min-height: 220px;
+  max-height: 540px;
+  overflow: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--color-abyss-500);
+  background: var(--color-abyss-900);
   color: var(--color-parchment-100);
-  font-family: var(--font-ui);
+  font-family: var(--font-code);
   font-size: 0.82rem;
 }
 
-.llm-run summary span {
-  color: var(--color-gold-400);
+.llm-run,
+.advanced-panel,
+.battle-log {
+  border: 1px solid var(--color-abyss-500);
+  background: var(--color-abyss-900);
+}
+
+.llm-run summary,
+.advanced-summary {
+  padding: var(--space-3);
+  cursor: pointer;
+  color: var(--color-parchment-100);
+  font-family: var(--font-code);
 }
 
 .llm-run-body {
   display: grid;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  border-top: var(--border-faint);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-abyss-500);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE COMPONENT ADJUSTMENTS
-   ═══════════════════════════════════════════════════════════════ */
+.status-note,
+.empty-state {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-gold-400);
+  background: rgba(154, 140, 115, 0.06);
+  color: var(--color-parchment-400);
+  text-align: center;
+}
 
-@media (max-width: 1120px) {
-  .hero-panel {
+.status-note.warn {
+  border-color: var(--color-ember-500);
+  background: rgba(227, 100, 20, 0.1);
+}
+
+.status-note.error {
+  border-color: var(--color-blood-700);
+  background: rgba(122, 27, 27, 0.16);
+  color: var(--color-parchment-100);
+}
+
+.toast {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 1000;
+  max-width: min(460px, calc(100vw - 32px));
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-lit);
+  background: var(--color-abyss-900);
+  box-shadow: var(--shadow-plate), var(--glow-ember);
+  color: var(--color-parchment-100);
+  font-family: var(--font-ui);
+}
+
+@media (max-width: 1180px) {
+  .hero-panel,
+  .combat-cockpit,
+  .file-browser {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+
+  .combat-screen {
+    height: auto;
+  }
+
+  .cockpit-rail,
+  .arena-stack {
+    overflow: visible;
   }
 
   .hero-art {
     min-height: 320px;
     border-left: 0;
-    border-top: var(--border-faint);
+    border-top: 1px solid var(--color-abyss-500);
   }
 
   .metric-strip,
+  .top-hud,
+  .stat-grid,
   .companion-grid,
-  .stat-grid {
+  .choice-grid,
+  .enemy-grid,
+  .assist-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .file-browser {
-    grid-template-columns: 1fr;
-  }
-  
-  .choice-grid {
-    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
   .panel-body {
-    padding: var(--space-4);
-  }
-  
-  .panel-body.lofty {
-    padding: var(--space-5);
+    padding: var(--space-3);
   }
 
   .metric-strip,
-  .companion-grid,
+  .top-hud,
   .stat-grid,
+  .companion-grid,
   .choice-grid,
-  .form-grid {
+  .enemy-grid,
+  .assist-grid,
+  .ritual-check-grid {
     grid-template-columns: 1fr;
   }
 
-  .ritual-gate {
+  .ritual-gate,
+  .roll-card {
     grid-template-columns: 1fr;
   }
 
-  .btn {
+  .btn,
+  .nav-link {
     width: 100%;
-  }
-  
-  .toast {
-    right: var(--space-4);
-    bottom: var(--space-4);
-    left: var(--space-4);
-    max-width: none;
   }
 }

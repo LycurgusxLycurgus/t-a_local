@@ -1,0 +1,105 @@
+## Diagnóstico general
+
+El repo ya va en una dirección sorprendentemente buena para una primera versión: existe una app local-first, modular, con `src/js`, `src/css`, `src/bridgecrux`, `src/design`, más `index.html` y `server.mjs`; además separa módulos como `campaign.js`, `rules.js`, `prompts.js`, `llmClient.js`, `rituals.js`, `epicurogotchi.js`, `storage.js` e `importExport.js`. Eso coincide bastante con el plan v0.3: app estática, Netlify-compatible, estado local, import/export, Gemini/proxy, reglas en código y narrativa en LLM. ([GitHub][1])
+
+La mejor noticia: **la frontera código vs LLM ya existe**, aunque todavía necesita endurecerse. `rules.js` ya contiene las 4 stats oficiales, clases base, difficulty bands, selección de rituales, encuentros y score challenge; `campaign.js` ya maneja turnos, ritual gates, drafts y validación/reparación mínima del output del GM; `prompts.js` ya obliga al LLM a devolver JSON estructurado y le prohíbe decidir DC exacta o completar rituales por su cuenta. Eso es exactamente la intuición correcta: el código debe ser árbitro y memoria; el LLM debe ser director/narrador. ([GitHub][2])
+
+## Lo que está bien
+
+**1. La arquitectura local-first está bien encaminada.**
+Tienes `localStorage`, import/export JSON, server local con proxy Gemini, y una app que puede vivir como HTML/CSS/JS. Para v1 esto es correcto: no necesitas Convex todavía; necesitas probar el loop de juego, rituales, turnos y LLM OS antes de meter backend real. ([GitHub][3])
+
+**2. Las 4 stats y las 4 esferas ya están en el centro.**
+El repo ya usa **Fuerza, Inteligencia, Carisma, Magnetismo** y mapea esferas/personajes de Vanaheim; esto evita volver al sistema D&D de 6 stats que ya descartamos. ([GitHub][2])
+
+**3. Los rituales micro/macro ya son una entidad real del sistema.**
+`state.js` ya trae rituales semilla como Mano Leveleadora, Hagen Knot, Elektra Forge, Multiversus Opulentus, Hyperionte, Fanete no Tabemono y Saturnalia; además `rules.js` selecciona rituales por tamaño/esfera/tags y `campaign.js` bloquea avance si hay misión out-game requerida. Esta parte captura muy bien el aprendizaje de la campaña-test: los rituales externos no pueden depender de que el GM “se acuerde”; el código debe ponerlos en el camino. ([GitHub][4])
+
+**4. Epicurogotchi ya tiene base funcional.**
+Hay nivel 1–99, reinicio en nueva forma, descubrimientos y subida de imagen por archivo; es básico, pero está alineado con la nueva idea de que la “Epicurogotchi Sheet de Enjuanetados” sea el origen de hallazgos/rituales. ([GitHub][5])
+
+**5. La integración Gemini/proxy está bien pensada para v1.**
+`llmClient.js` soporta API directa y proxy local `/api/gemini`, con fallback de modelo y manejo de thinking config; `server.mjs` implementa proxy con `GEMINI_API_KEY`. Eso te da dos modos útiles: prototipo rápido con key en UI y modo más seguro vía proxy local. ([GitHub][6])
+
+## Lo que no está bien todavía
+
+**1. Bridgecrux existe como idea, pero no como sistema operativo real.**
+Tienes archivos `universal_system.md`, `assistants.md` y `output_contracts.md`, pero son demasiado delgados y además parte importante del prompt vive hardcodeada dentro de `prompts.js`. Eso rompe la idea Bridgecrux: un router compacto, autoexplicable, editable como workspace, con files como fuente de verdad. Ahora mismo hay duplicación y posible drift entre los `.md` físicos y el prompt real que se envía. ([GitHub][7])
+
+**2. El routing de modelos no coincide con tu intención.**
+Tus notas dicen: heavy = Gemini 2.5 Pro, medium = Gemini 3 Flash latest, small = Gemini 3 Flash Lite latest. El repo actualmente configura heavy como `gemini-3-flash-preview`, y medium/small como `gemini-3.1-flash-lite-preview`, según `llmConfig.js` y el documento de configuración. No es gravísimo, pero sí rompe la semántica de “heavy/medium/small” que Bridgecrux necesita para elegir bien tareas. ([GitHub][8])
+
+**3. La UI todavía se siente más “dashboard/text adventure” que “action videogame”.**
+La app tiene sidebar, dashboard, campaign log, action forms y paneles largos. Eso funciona para prototipo, pero no transmite el loop que definiste: acción rápida, combate, amenaza visible, minijuego, ritual gate, recompensa. La estructura visual actual favorece lectura y administración; todavía no favorece adrenalina, timing, amenaza, enemigo, HUD y acción. ([GitHub][9])
+
+**4. El combate todavía no es un motor; es una escena con tirada/score.**
+Ya hay enemies, targets, roll cards y score challenge, pero falta un combat state robusto: rondas, iniciativa simplificada, acciones enemigas, acciones de compañeros de Vanaheim, condiciones, daño aplicado de verdad, reward resolution, threat clock. Para que se sienta como action videogame, el combate debe ser un “modo” fuerte, no solo un bloque dentro del log. ([GitHub][9])
+
+**5. La campaign map / act map no parece ser todavía la columna vertebral.**
+`campaign.js` crea `actMap` y `campaignMap`, pero la sensación del sistema aún parece turn-by-turn guiado por el GM, no “20-beat campaign plan code-owned + LLM fills the magic”. Para evitar que el LLM divague, el código debería tener un mapa de 20 turnos con fase, tipo de encounter, ritual size, target intensity y reward intent. ([GitHub][10])
+
+**6. El almacenamiento necesita cambiar antes de meter imágenes y campañas largas.**
+`localStorage` sirve para prototipo, pero guardar imágenes de Epicurogotchi como data URLs más logs largos puede chocar rápido con límites de navegador. Para v1 seria, usa IndexedDB para campañas, imágenes y bundles; deja `localStorage` para settings mínimos. ([GitHub][3])
+
+**7. Hay un bug visual probable en tokens CSS.**
+`tokens.css` define una paleta amplia, pero `layout.css` y `components.css` usan variables como `--color-gold-400` y `--color-gold-500` que no aparecen definidas en tokens. Eso puede causar estilos rotos o inconsistentes. ([GitHub][11])
+
+## Prioridad alta
+
+**P0 — Convertir Bridgecrux en fuente de verdad real.**
+Ahora mismo lo más urgente no es más UI ni más features: es que el sistema de prompts no se vuelva una maraña. Debe haber una sola fuente de verdad: o los `.md` físicos/virtuales alimentan `prompts.js`, o `prompts.js` genera esos files; no ambos desincronizados. Mi recomendación: crear un `bridgecruxRegistry` que cargue `universal_system.md`, `assistants.md`, `output_contracts.md`, etc., desde estado local o archivos default, y que el prompt assembly use eso. y comprimir archivos que no necesitan ser modulares a un sólo archivo llamado 'general-functions.md'
+
+**P0 — Crear un `CampaignPlan` code-owned de 20 turnos.**
+El LLM puede diseñarlo, pero el código debe guardarlo y validarlo: turno, fase, encounterType, combat/social/explore, ritualSize, difficultyBand, primaryStat, rewardIntent, enemyIntent, outGamePolicy. Eso haría cumplir el 80/20 y evitaría campañas que se vuelven demasiado exploratorias o demasiado narrativas.
+
+**P0 — Hacer el Combat Mode real.**
+Añade `combatState`: round, enemies, enemyIntent, allyActions, availableActions, threatClock, scoreChallenge, outGameGate, pendingResolution. La UI debe entrar en “modo combate” y reducir el texto a battle log. Sin esto, TyA seguirá sintiéndose como chat narrativo.
+
+**P0 — Mover Epicurogotchi Sheet al centro.**
+La app ya tiene una pantalla, pero todavía parece secundaria. Debe ser origen de “Enjuanetados”, rituales y level-up. Al cerrar campaña, la app debe preguntar: qué descubriste, qué se vuelve micro ritual, qué se vuelve macro ritual, qué imagen/forma cambia.
+
+## Prioridad media
+
+**P1 — Actualizar modelo routing.**
+No hardcodees demasiado nombres de modelo si van a cambiar, pero sí corrige la intención: heavy para arquitectura/reparación, medium para turnos, small para validación/extracción. La UI debería permitir ver y cambiar qué modelo cumple cada rol. Quitar los modelos hardcodeados y sencillamente revisar el último config para cada routing.
+
+**P1 — Implementar repair loop automático.**
+Si el output del GM no trae `OUT-GAME`, JSON válido, challengeSignal, o intenta cambiar stats directamente, el small model debería reparar antes de mostrarlo o antes de permitir avanzar. Ahora ya existe validación, pero debería ser más estricta.
+
+**P1 — Pasar de `localStorage` a IndexedDB.**
+Hazlo antes de que haya muchas imágenes/turnos. Mantén export/import JSON como feature principal. Sin embargo, lo que vamos hacer de momento mientras sea local esta app es que el asset de la imágen del epicurogotchi va a ser reemplazado en assets, por lo tanto no es tan relevante este cambio aún. 
+
+**P1 — Mejorar el sistema de rituales con cooldowns, tags y reward bias reales.**
+Ya existen campos conceptuales; falta que el código use esos datos para seleccionar mejor, no solo random básico.
+
+**P1 — Tests mínimos.**
+No vi una estructura clara de scripts/tests en la raíz; para este proyecto bastaría empezar con tests de `rules.js`, `campaign.js`, `storage.js`, `prompts.js`: dificultad, ritual selection, canAdvanceTurn, JSON validation, import/export. ([GitHub][1])
+
+## Prioridad baja
+
+**P2 — Más clases, más loot, más reliquias.**
+No expandas catálogo todavía. El problema no es falta de contenido: es que el loop central necesita sentirse más jugable.
+
+**P2 — Animaciones, audio, efectos.**
+Son deseables, pero después del Combat Mode. Primero estructura; luego jugo visual.
+
+**P2 — Backend real.**
+Convex puede venir después. Local-first todavía es la decisión correcta hasta que el loop esté probado.
+
+## Consejos para el revamp UI/UX
+
+Conservaría la dirección visual “objeto físico / artefacto de Vanaheim”. El viejo `t&a-ui-base.html` tenía un fondo físico tipo cuero/mesa/material ritual, y el sistema actual ya conserva una paleta abyss/ember/parchment con textura y glow; eso es rescatable. ([GitHub][12])
+
+Lo que cambiaría radicalmente es la jerarquía UX. La pantalla principal no debería sentirse como “chat + formularios”, sino como **combat cockpit**:
+
+* **Top HUD:** campaña, turno 7/20, fase, threat meter, out-game gate.
+* **Centro:** enemigo/encounter actual como “arena card”, con HP, intención enemiga y objetivo.
+* **Izquierda:** Juanete + Ironmole como cards jugables, stats, recursos, habilidades.
+* **Derecha:** Din, Segismundo, Hagen, Elektra como assist cards con cooldown/acción sugerida.
+* **Abajo:** action bar grande: Atacar, Habilidad, Totuma Trick, Ritual, Acción libre.
+* **Narración:** battle log colapsable, no el centro de la experiencia.
+* **Ritual out-game:** overlay tipo boss gate: “Sello externo requerido”, completar nota/prueba, recompensa visible.
+
+La regla de oro: **la prosa debe ser recompensa y consecuencia, no la interfaz principal**. Durante combate, el usuario debe mirar primero amenaza, acción, score, ritual y recompensa; luego leer el texto si quiere más sabor.
+
+Mi siguiente tarea recomendada para Codex sería: **“Revamp v1: Combat Cockpit + Bridgecrux source-of-truth”**. Primero arreglar el OS de prompts y el modo combate; después rehacer todo el look visual encima de una base funcional.

@@ -93,7 +93,18 @@ export function selectRitual(state, options = {}) {
       rewardBias: "adaptive"
     };
   }
-  return source[Math.floor(Math.random() * source.length)];
+  const rewardNeed = String(options.rewardBias || options.rewardIntent || "").toLowerCase();
+  const tagNeed = new Set((options.tags || []).map((tag) => String(tag).toLowerCase()));
+  const scored = source.map((ritual) => {
+    const tags = (ritual.tags || []).map((tag) => String(tag).toLowerCase());
+    const tagScore = tags.filter((tag) => tagNeed.has(tag) || rewardNeed.includes(tag)).length;
+    const rewardScore = ritual.rewardBias && rewardNeed.includes(String(ritual.rewardBias).toLowerCase()) ? 2 : 0;
+    const difficultyScore = options.difficulty && ritual.difficulty === options.difficulty ? 1 : 0;
+    return { ritual, score: tagScore + rewardScore + difficultyScore };
+  }).sort((a, b) => b.score - a.score);
+  const bestScore = scored[0]?.score || 0;
+  const best = bestScore > 0 ? scored.filter((item) => item.score === bestScore).map((item) => item.ritual) : source;
+  return best[Math.floor(Math.random() * best.length)];
 }
 
 export function createEncounter(state, campaign, overrides = {}) {
@@ -104,7 +115,7 @@ export function createEncounter(state, campaign, overrides = {}) {
   const sphere = sphereForStat(primaryStat);
   const ritualSize = isBoss ? "macro" : "micro";
   const usedRitualIds = campaign.turns.flatMap((turn) => turn.activeOutGameMission?.ritual?.id ? [turn.activeOutGameMission.ritual.id] : []);
-  const ritual = overrides.ritual || selectRitual(state, { size: ritualSize, sphere: sphere.id, avoidIds: usedRitualIds });
+  const ritual = overrides.ritual || selectRitual(state, { size: ritualSize, sphere: sphere.id, avoidIds: usedRitualIds, rewardIntent: overrides.rewardIntent, difficulty: difficultyBand });
   const target = targetForDifficulty(difficultyBand, turnNumber + 1);
   return {
     id: uid("encounter"),
@@ -129,6 +140,14 @@ export function createEncounter(state, campaign, overrides = {}) {
       status: "pending",
       score: null,
       resultLabel: null
+    },
+    combatState: {
+      round: 1,
+      threatClock: isBoss ? 6 : 4,
+      enemyIntent: overrides.enemyIntent || (isBoss ? "Cerrar el boss gate y castigar errores." : "Forzar una mala posicion y drenar HP."),
+      allyActions: [],
+      pendingResolution: true,
+      battleLog: []
     },
     ritual
   };

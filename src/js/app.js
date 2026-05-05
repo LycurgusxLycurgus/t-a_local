@@ -1,14 +1,14 @@
 import { createInitialState, getActiveCampaign, getActiveEpicurogotchi, SPHERES, CLASS_NAMES } from "./state.js";
 import { loadState, saveState, resetStoredState } from "./storage.js";
 import { createCampaign, completeActiveRitual, registerScore, commitTurn, validateGmOutput, setCurrentTurnDraft } from "./campaign.js";
-import { buildPromptBundle, bridgecruxFiles } from "./prompts.js";
+import { buildPromptBundle, buildSystemInstruction, getBridgecruxRegistry } from "./prompts.js";
 import { addRitual, deleteRitual, ritualStats } from "./rituals.js";
 import { addDiscovery, levelUp, setPetImageFromFile } from "./epicurogotchi.js";
 import { exportBundle, importBundle } from "./importExport.js";
 import { CLASS_TABLE, modifierFor, rollD20, scoreFromTimingPercent, targetForDifficulty } from "./rules.js";
 import { callGemini, GEMINI_MODEL_TIERS, GEMINI_MODES } from "./llmClient.js";
 import { routeForTier } from "./llmConfig.js";
-import { CAMPAIGN_MAP_SCHEMA, SEED_SCHEMA } from "./prompts.js";
+import { CAMPAIGN_MAP_SCHEMA, GM_TURN_SCHEMA, SEED_SCHEMA } from "./prompts.js";
 
 let state = loadState();
 let ui = {
@@ -94,10 +94,9 @@ function resetTurnInputs() {
 function render() {
   const campaign = getActiveCampaign(state);
   app.innerHTML = `
-    <div class="layout">
-      ${renderSidebar(campaign)}
-      <main class="main">
-        ${renderTopbar(campaign)}
+    <div class="layout app-table">
+      ${renderGlobalNav(campaign)}
+      <main class="main app-view active" id="main-content">
         ${renderScreen(campaign)}
       </main>
     </div>
@@ -132,7 +131,7 @@ function initGlobalUx() {
   });
   document.addEventListener("keydown", (event) => {
     if (!event.altKey || event.key < "1" || event.key > "7") return;
-    const navButtons = [...document.querySelectorAll(".nav-button")];
+    const navButtons = [...document.querySelectorAll(".nav-link")];
     const target = navButtons[Number(event.key) - 1];
     if (!target) return;
     event.preventDefault();
@@ -141,35 +140,38 @@ function initGlobalUx() {
   });
 }
 
-function renderSidebar(campaign) {
+function renderGlobalNav(campaign) {
   const items = [
     ["dashboard", "layout-dashboard", "Dashboard"],
-    ["setup", "scroll", "Campaign Setup"],
-    ["play", "swords", "Campaign Play"],
-    ["rituals", "flame-kindling", "Rituals Library"],
+    ["setup", "scroll", "Forge"],
+    ["play", "swords", "Play"],
+    ["rituals", "flame-kindling", "Rituals"],
     ["epicurogotchi", "egg", "Epicurogotchi"],
-    ["memory", "folder-open", "Memory / Files"],
+    ["memory", "folder-open", "Memory"],
     ["bridgecrux", "route", "Bridgecrux"]
   ];
   return `
-    <aside class="sidebar">
-      <div class="brand-block">
-        <span class="brand-kicker">Local-first campaign engine</span>
-        <h1 class="brand-title">Totumas & Aventuras</h1>
-        <p class="brand-subtitle">${campaign ? escapeHtml(campaign.title) : "No active campaign"} ${campaign ? `- Turn ${campaign.turnNumber}/${campaign.maxTurns}` : ""}</p>
+    <nav class="global-nav" aria-label="Primary">
+      <div class="nav-brand">
+        <span>Totumas & Aventuras</span>
+        <small>${campaign ? `${escapeHtml(campaign.title)} / Turn ${campaign.turnNumber}/${campaign.maxTurns}` : "Open the table"}</small>
       </div>
-      <nav class="nav" aria-label="Primary">
+      <div class="nav-links">
         ${items.map(([view, iconName, label]) => `
-          <button class="nav-button ${ui.view === view ? "is-active" : ""}" data-view="${view}">
+          <button class="nav-link ${view === "bridgecrux" ? "dev-link" : ""} ${ui.view === view ? "active" : ""}" data-view="${view}">
             ${icon(iconName)} <span>${label}</span>
           </button>
         `).join("")}
-      </nav>
-      <div class="status-note">
-        <strong>Code / LLM border</strong>
-        <p class="meta">Code owns state, stats, DCs, rituals, score, memory, and turn gates. The GM writes fiction and proposals.</p>
       </div>
-    </aside>
+      <div class="nav-actions">
+        <button class="btn btn-secondary" data-action="export-state">${icon("download")} Export</button>
+        <label class="btn btn-secondary">
+          ${icon("upload")} Import
+          <input data-action="import-state" type="file" accept="application/json" hidden>
+        </label>
+        <button class="btn btn-secondary" data-action="save-state">${icon("save")} Save</button>
+      </div>
+    </nav>
   `;
 }
 
@@ -432,15 +434,18 @@ function renderPlay(campaign) {
     return renderEpicurogotchiPrelude(campaign);
   }
   const currentDraft = campaign.currentTurnDraft || null;
+  if (campaign.activeEncounter && currentDraft) {
+    return renderCombatCockpit(campaign, currentDraft);
+  }
   return `
     <section class="screen">
       <div class="screen-header">
         <div>
           <span class="eyebrow">Campaign play</span>
           <h2 class="screen-title">${escapeHtml(campaign.title)}</h2>
-          <p class="screen-copy">Turn ${Math.min(campaign.turnNumber, campaign.maxTurns)}/${campaign.maxTurns}. Read the GM scene, choose what Juanete and Ironmole do, then resolve the turn.</p>
         </div>
       </div>
+      ${renderTopHud(campaign)}
       <div class="grid two game-table">
         <div class="stack game-main">
           ${renderCurrentScene(campaign, currentDraft)}
@@ -449,11 +454,144 @@ function renderPlay(campaign) {
         <aside class="stack game-side">
           ${renderGameStatus(campaign)}
           ${renderInteractionPanel(campaign)}
-          ${renderAdvancedGmPanel(campaign)}
           ${renderTurnLog(campaign)}
         </aside>
       </div>
     </section>
+  `;
+}
+
+function renderCombatCockpit(campaign, currentDraft) {
+  return `
+    <section class="screen combat-screen">
+      <div class="screen-header cockpit-header">
+        <div>
+          <span class="eyebrow">Combat mode</span>
+          <h2 class="screen-title">${escapeHtml(campaign.activeEncounter.title)}</h2>
+        </div>
+      </div>
+      ${renderTopHud(campaign)}
+      <div class="combat-cockpit">
+        <aside class="cockpit-rail">
+          ${renderCharacterPilot("juanete", "Juanete")}
+          ${renderCharacterPilot("ironmole", "Ironmole")}
+        </aside>
+        <main class="arena-stack">
+          ${renderEncounterArena(campaign)}
+          ${renderPlayerTurnPanel(campaign, false)}
+          <details class="battle-log">
+            <summary>${icon("book-open")} Scene log</summary>
+            <p class="scene-text compact">${escapeHtml(cleanGmNarration(currentDraft.visibleTurnText))}</p>
+          </details>
+        </main>
+        <aside class="cockpit-rail">
+          ${renderVanaheimAssists(campaign)}
+          ${campaign.activeOutGameMission ? renderRitualGate(campaign.activeOutGameMission, ui.llmBusy) : ""}
+          ${renderTurnLog(campaign, true)}
+        </aside>
+      </div>
+    </section>
+  `;
+}
+
+function renderTopHud(campaign) {
+  const encounter = campaign.activeEncounter;
+  const mission = campaign.activeOutGameMission;
+  const threat = encounter?.combatState?.threatClock ?? "-";
+  const pet = getActiveEpicurogotchi(state);
+  return `
+    <div class="top-hud">
+      ${metric("Turn", `${campaign.turnNumber}/${campaign.maxTurns}${campaign.mechanicalResults?.unresolved ? " unresolved" : ""}`)}
+      ${metric("Phase", campaign.phase)}
+      ${metric("Threat", threat)}
+      ${metric("Ritual", mission ? (mission.completed ? "done" : "open") : "none")}
+      ${metric("Piccolo", `Lv ${pet.level}`)}
+    </div>
+  `;
+}
+
+function renderCharacterPilot(actor, label) {
+  const character = state.characters[actor];
+  if (!character) return "";
+  const hpPercent = Math.max(0, Math.min(100, Math.round((character.hp / Math.max(1, character.maxHp)) * 100)));
+  return `
+    <article class="pilot-card">
+      <div class="split">
+        <div>
+          <span class="eyebrow">${escapeHtml(label)}</span>
+          <h3>${escapeHtml(character.className)}</h3>
+        </div>
+        <span class="pill hot">HP ${character.hp}/${character.maxHp}</span>
+      </div>
+      <div class="hp-track"><span style="width:${hpPercent}%"></span></div>
+      <div class="stat-grid compact">
+        ${Object.entries(character.stats || {}).map(([stat, value]) => `
+          <div class="stat-box">
+            <span class="stat-label">${escapeHtml(stat)}</span>
+            <strong>${value}</strong>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderEncounterArena(campaign) {
+  const encounter = campaign.activeEncounter;
+  const state = encounter.combatState || {};
+  return `
+    <section class="panel arena-panel">
+      <div class="panel-body">
+        <div class="split">
+          <div>
+            <span class="eyebrow">Arena</span>
+            <h3 class="panel-title">${escapeHtml(encounter.objective)}</h3>
+          </div>
+          <span class="pill hot">Target ${encounter.target}</span>
+        </div>
+        <div class="enemy-grid">
+          ${encounter.enemies.map((enemy) => {
+            const hpPercent = Math.max(0, Math.min(100, Math.round((enemy.hp / Math.max(1, enemy.maxHp)) * 100)));
+            return `
+              <article class="enemy-card ${enemy.hp <= 0 ? "is-defeated" : ""}">
+                <div class="split">
+                  <h4>${escapeHtml(enemy.name)}</h4>
+                  <span class="pill">${enemy.hp}/${enemy.maxHp}</span>
+                </div>
+                <div class="hp-track danger"><span style="width:${hpPercent}%"></span></div>
+                <p class="meta">${escapeHtml(enemy.condition)}</p>
+              </article>
+            `;
+          }).join("")}
+        </div>
+        <div class="arena-intent">
+          <span class="eyebrow">Enemy intent</span>
+          <p>${escapeHtml(state.enemyIntent || "Press the heroes until the scene breaks.")}</p>
+        </div>
+        ${renderRollCards(campaign)}
+        ${renderTimingGame(encounter)}
+      </div>
+    </section>
+  `;
+}
+
+function renderVanaheimAssists(campaign) {
+  const companions = Object.values(state.characters.vanaheim || {});
+  return `
+    <div class="panel assist-panel">
+      <div class="panel-body">
+        <span class="eyebrow">Vanaheim assists</span>
+        <div class="assist-grid">
+          ${companions.map((companion) => `
+            <div class="assist-card">
+              <strong>${escapeHtml(companion.name.split(" ")[0])}</strong>
+              <span>${escapeHtml(companion.sphere)}</span>
+              <small>Lv ${companion.level}</small>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -497,7 +635,7 @@ function renderEpicurogotchiPrelude(campaign) {
               <div class="card-list" style="margin-top: var(--space-4);">
                 <div class="item-card"><h4 class="item-title">Epicurogotchi level</h4><p class="meta">Use the sheet as the source of truth for Piccolo before the run.</p></div>
                 <div class="item-card"><h4 class="item-title">New rituals</h4><p class="meta">Anything found there can later enter the Ritual Library.</p></div>
-                <div class="item-card"><h4 class="item-title">Campaign omen</h4><p class="meta">The first GM scene should react to Piccolo's current state.</p></div>
+                <div class="item-card"><h4 class="item-title">Campaign omen</h4><p class="meta">The first scene should react to Piccolo's current state.</p></div>
               </div>
             </div>
           </div>
@@ -526,7 +664,7 @@ function renderCurrentScene(campaign, currentDraft) {
         <div class="panel-body">
           <span class="eyebrow">Turn ${campaign.turnNumber}/${campaign.maxTurns}</span>
           <h3 class="panel-title">${hasStarted ? "The Next Scene Is Waiting" : "Begin the Campaign"}</h3>
-          <p class="item-copy">${hasStarted ? "The last turn is saved in the log. Generate the next GM scene to keep playing." : "The campaign exists, but the GM has not opened the first scene yet."}</p>
+          <p class="item-copy">${hasStarted ? "The last turn is saved in the log. Open the next scene to keep playing." : "The campaign exists, but the first scene is not open yet."}</p>
           ${ui.llmError ? `<div class="status-note error">${escapeHtml(ui.llmError)}</div>` : ""}
           <button class="btn" data-action="start-campaign">${icon("sparkles")} ${hasStarted ? `Generate Turn ${campaign.turnNumber}` : "Start Turn One"}</button>
         </div>
@@ -539,7 +677,7 @@ function renderCurrentScene(campaign, currentDraft) {
       <div class="panel-body">
         <div class="split">
           <div>
-            <span class="eyebrow">GM scene</span>
+            <span class="eyebrow">Scene</span>
             <h3 class="panel-title">Turn ${currentDraft.turnNumber}/${campaign.maxTurns}</h3>
           </div>
           <span class="pill hot">${escapeHtml(currentDraft.challengeSignal?.challengeType || "scene")}</span>
@@ -550,7 +688,7 @@ function renderCurrentScene(campaign, currentDraft) {
   `;
 }
 
-function renderPlayerTurnPanel(campaign) {
+function renderPlayerTurnPanel(campaign, showRitual = true) {
   const disabled = !campaign.currentTurnDraft || ui.llmBusy;
   const draft = campaign.currentTurnDraft;
   const options = draft ? getActionOptions(draft) : { juanete: [], ironmole: [] };
@@ -564,7 +702,7 @@ function renderPlayerTurnPanel(campaign) {
       <div class="panel-body">
         <span class="eyebrow">Your move</span>
         <h3 class="panel-title">Choose Actions</h3>
-        ${mission ? renderRitualGate(mission, disabled) : ""}
+        ${mission && showRitual ? renderRitualGate(mission, disabled) : ""}
         <div class="choice-grid">
           ${renderActionColumn("juanete", "Juanete", options.juanete, disabled)}
           ${renderActionColumn("ironmole", "Ironmole", options.ironmole, disabled)}
@@ -603,7 +741,7 @@ function splitGmScene(text) {
   const normalized = normalizeText(source);
   const positions = labels.map((label) => ({ label, index: normalized.indexOf(label) })).filter((item) => item.index >= 0).sort((a, b) => a.index - b.index);
   if (!positions.length) {
-    return [{ key: "scene", label: "GM Scene", text: source || "The GM has not spoken yet." }];
+    return [{ key: "scene", label: "Scene", text: source || "The scene is not open yet." }];
   }
   return positions.map((item, index) => {
     const start = item.index + item.label.length;
@@ -676,7 +814,7 @@ function renderActionColumn(actor, label, items, disabled) {
           ${item.stat ? `<small>${escapeHtml(item.stat)}</small>` : ""}
           ${item.intent && item.intent !== item.label ? `<span>${escapeHtml(item.intent)}</span>` : ""}
         </button>
-      `).join("") : `<div class="status-note">The GM did not return structured ${escapeHtml(label)} options. Use the custom action field.</div>`}
+      `).join("") : `<div class="status-note">Choose a custom action for ${escapeHtml(label)}.</div>`}
     </div>
   `;
 }
@@ -687,7 +825,7 @@ function renderRitualGate(mission, disabled) {
   return `
     <div class="ritual-gate ${checked ? "is-complete" : ""}">
       <div>
-        <span class="eyebrow">Required ritual</span>
+        <span class="eyebrow">External seal</span>
         <h4>${escapeHtml(ritual.title)}</h4>
         <p>${escapeHtml(ritual.description)}</p>
         <div class="pill-row">
@@ -698,7 +836,7 @@ function renderRitualGate(mission, disabled) {
       </div>
       <label class="ritual-check">
         <input type="checkbox" data-input="ritual-complete" ${checked ? "checked" : ""} ${disabled || mission.completed ? "disabled" : ""}>
-        <span>Ritual done</span>
+        <span>Complete</span>
       </label>
       <div class="field full">
         <label for="ritualProof">Proof note</label>
@@ -713,14 +851,14 @@ function renderGameStatus(campaign) {
   return `
     <div class="panel">
       <div class="panel-body">
-        <span class="eyebrow">Game state</span>
+        <span class="eyebrow">Run</span>
         <h3 class="panel-title">${escapeHtml(campaign.phase)}</h3>
         <div class="metric-strip" style="margin-top: var(--space-4);">
           ${metric("Turn", `${campaign.turnNumber}/${campaign.maxTurns}`)}
           ${metric("Ritual", mission ? (mission.completed ? "done" : "open") : "none")}
           ${metric("Combat", campaign.activeEncounter ? "active" : "none")}
           ${metric("Map", campaign.campaignMapStatus || (campaign.campaignMap ? "ready" : "none"))}
-          ${metric("GM", ui.llmBusy ? "thinking" : "ready")}
+          ${metric("Scene", ui.llmBusy ? "opening" : "ready")}
         </div>
         <div class="character-state-grid">
           ${renderCharacterState("juanete", "Juanete")}
@@ -761,7 +899,7 @@ function renderInteractionPanel(campaign) {
       <div class="panel-body">
         <div class="split">
           <div>
-            <span class="eyebrow">Interaction panel</span>
+            <span class="eyebrow">Action</span>
             <h3 class="panel-title">${encounter ? escapeHtml(encounter.title) : "Roll the Scene"}</h3>
           </div>
           <span class="pill hot">Target ${target}</span>
@@ -780,7 +918,7 @@ function renderInteractionPanel(campaign) {
             `).join("")}
           </div>
         ` : `
-          <p class="item-copy">${campaign.currentTurnDraft ? `This ${escapeHtml(turnType)} turn resolves through the action buttons and d20 rolls. Combat rituals appear only when the GM has opened a fight.` : "Generate the GM scene before rolling."}</p>
+          <p class="item-copy">${campaign.currentTurnDraft ? `${escapeHtml(turnType)} turn. Choose actions, roll, resolve.` : "Open the next scene to act."}</p>
         `}
         ${renderRollCards(campaign)}
         ${encounter ? renderTimingGame(encounter) : ""}
@@ -848,7 +986,7 @@ function normalizeStatName(stat) {
 }
 
 function getTurnRollGate(campaign) {
-  if (!campaign?.currentTurnDraft) return { ok: false, reason: "Generate the GM scene before choosing actions." };
+  if (!campaign?.currentTurnDraft) return { ok: false, reason: "Open the scene before choosing actions." };
   const missingActions = ["juanete", "ironmole"].filter((actor) => !getActorAction(campaign, actor).label);
   if (missingActions.length) return { ok: false, reason: "Choose one action for Juanete and one action for Ironmole." };
   const missingRolls = ["juanete", "ironmole"].filter((actor) => !ui.rolls[actor]);
@@ -924,8 +1062,8 @@ function renderAdvancedGmPanel(campaign) {
   return `
     <details class="panel advanced-panel" ${ui.advancedOpen ? "open" : ""}>
       <summary class="advanced-summary">
-        <span>${icon("settings")} Advanced GM Settings</span>
-        <small>Models, proxy, prompt debugging</small>
+        <span>${icon("settings")} Engine Settings</span>
+        <small>Routes and run records</small>
       </summary>
       <div class="panel-body">
         <div class="form-grid" style="margin-top: var(--space-4);">
@@ -1013,14 +1151,14 @@ function renderValidation(validation) {
   `;
 }
 
-function renderTurnLog(campaign) {
+function renderTurnLog(campaign, compact = false) {
   return `
     <div class="panel">
       <div class="panel-body">
-        <span class="eyebrow">Turn log</span>
-        <h3 class="panel-title">Saved turns</h3>
+        <span class="eyebrow">Log</span>
+        <h3 class="panel-title">${compact ? "Recent" : "Saved turns"}</h3>
         <div class="log-list" style="margin-top: var(--space-4);">
-          ${campaign.turns.length ? campaign.turns.slice().reverse().map((turn) => `
+          ${campaign.turns.length ? campaign.turns.slice().reverse().slice(0, compact ? 3 : campaign.turns.length).map((turn) => `
             <article class="turn-log">
               <span class="eyebrow">Turn ${turn.turnNumber}</span>
               <pre>${escapeHtml(turn.visibleTurnText || "No visible text.")}</pre>
@@ -1187,13 +1325,14 @@ function renderMemory() {
 
 function renderBridgecrux() {
   const runs = Array.isArray(state.llmRuns) ? state.llmRuns.slice(-8).reverse() : [];
+  const registry = getBridgecruxRegistry(state);
   return `
     <section class="screen">
       <div class="screen-header">
         <div>
-          <span class="eyebrow">Bridgecrux / LLM OS</span>
-          <h2 class="screen-title">Prompt Spine</h2>
-          <p class="screen-copy">Prompt contracts plus the latest GM input, output, route, and validation results. API keys are never stored here.</p>
+          <span class="eyebrow">Bridgecrux</span>
+          <h2 class="screen-title">Engine Room</h2>
+          <p class="screen-copy">Editable run instructions and recent model calls. API keys are never stored here.</p>
         </div>
       </div>
       <div class="panel" style="margin-bottom: var(--space-6);">
@@ -1204,7 +1343,7 @@ function renderBridgecrux() {
         </div>
       </div>
       <div class="grid two">
-        ${Object.entries(bridgecruxFiles).map(([name, content]) => `
+        ${Object.entries(registry).map(([name, content]) => `
           <div class="panel">
             <div class="panel-body">
               <span class="eyebrow">${escapeHtml(name)}</span>
@@ -1357,7 +1496,7 @@ function bindEvents() {
   document.querySelector("[data-action='refresh-scene']")?.addEventListener("click", async () => {
     const campaign = getActiveCampaign(state);
     resetTurnInputs();
-    await generateGmDraft(campaign, "Regenerate the current GM scene. Keep the same campaign state, but make the scene more directly playable.");
+    await generateGmDraft(campaign, "Regenerate the current scene. Keep the same campaign state, but make the scene more directly playable.");
   });
 
   document.querySelector("[data-action='resolve-game-turn']")?.addEventListener("click", async () => {
@@ -1446,13 +1585,21 @@ function bindEvents() {
       const result = await callGemini({
         prompt: ui.promptOutput,
         settings: state.settings,
-        apiKey: window.sessionStorage.getItem("tya.gemini.apiKey") || ""
+        apiKey: window.sessionStorage.getItem("tya.gemini.apiKey") || "",
+        systemInstruction: buildSystemInstruction(state)
       });
       ui.gmOutput = result.text;
       ui.validation = validateGmOutput(result.text);
       recordLlmRun({ campaign, prompt: ui.promptOutput, result, validation: ui.validation, settings: state.settings });
+      if (!ui.validation.ok) {
+        const repaired = await repairGmOutput(campaign, ui.promptOutput, result.text, ui.validation);
+        if (repaired?.validation?.ok) {
+          ui.gmOutput = repaired.result.text;
+          ui.validation = repaired.validation;
+        }
+      }
       if (ui.validation.ok) {
-        setCurrentTurnDraft(state, campaign, ui.validation, result.text);
+        setCurrentTurnDraft(state, campaign, ui.validation, ui.gmOutput);
         resetTurnInputs();
         saveState(state);
       }
@@ -1646,10 +1793,13 @@ function recordLlmRun({ campaign, prompt, result, validation, error, settings })
 async function generateRandomSeed() {
   if (ui.seedBusy) return;
   const settings = settingsForRoute("small");
+  const registry = getBridgecruxRegistry(state);
   const currentForm = document.querySelector("[data-form='campaign-setup']");
   const formData = currentForm ? Object.fromEntries(new FormData(currentForm).entries()) : {};
   const prompt = [
-    bridgecruxFiles["universal_system.md"],
+    registry["universal_system.md"],
+    "",
+    registry["general-functions.md"],
     "",
     "Genera una semilla de campana para Totumas & Aventuras.",
     "Debe estar en espanol, con titulo, tono raro, aventurero, tactico y jugable.",
@@ -1673,7 +1823,7 @@ async function generateRandomSeed() {
       settings,
       apiKey: window.sessionStorage.getItem("tya.gemini.apiKey") || "",
       responseJsonSchema: SEED_SCHEMA,
-      systemInstruction: `${bridgecruxFiles["universal_system.md"]}\n\nEres un generador de semillas de campana en espanol para este juego narrativo-tactico. Responde solo JSON valido.`
+      systemInstruction: `${registry["universal_system.md"]}\n\n${registry["general-functions.md"]}\n\nEres un generador de semillas de campana en espanol para este juego narrativo-tactico. Responde solo JSON valido.`
     });
     const parsed = JSON.parse(result.text);
     ui.setupSeed = parsed.seed || "";
@@ -1703,7 +1853,7 @@ async function generateCampaignMap(campaign) {
       settings,
       apiKey: window.sessionStorage.getItem("tya.gemini.apiKey") || "",
       responseJsonSchema: CAMPAIGN_MAP_SCHEMA,
-      systemInstruction: "Eres el arquitecto heavy de Totumas & Aventuras. Crea mapas de campana completos en espanol. El codigo posee estadisticas, DCs, HP, rituales y turnos; tu salida debe planear ritmo, escenas, enemigos y rituales por combate usando solo rituales dados."
+      systemInstruction: `${buildSystemInstruction(state)}\n\nEres el arquitecto heavy de Totumas & Aventuras. Crea mapas de campana completos en espanol. El codigo posee estadisticas, DCs, HP, rituales y turnos; tu salida debe planear ritmo, escenas, enemigos y rituales por combate usando solo rituales dados.`
     });
     const parsed = JSON.parse(result.text);
     campaign.campaignMap = normalizeCampaignMap(campaign, parsed);
@@ -1726,13 +1876,17 @@ async function generateCampaignMap(campaign) {
 }
 
 function buildCampaignMapPrompt(campaign) {
+  const registry = getBridgecruxRegistry(state);
   return [
-    bridgecruxFiles["universal_system.md"],
+    registry["universal_system.md"],
+    "",
+    registry["general-functions.md"],
     "",
     "Crea el mapa completo de campana para Totumas & Aventuras.",
     "Todo debe estar en espanol. No improvises rituales fuera de la biblioteca.",
     "Cada turno debe tener un beat jugable. Solo los turnos combat o boss deben tener ritualId/ritualTitle.",
     "Para explore/social/ritual sin combate usa ritualId y ritualTitle vacios.",
+    "Cada turno debe incluir ritualSize, enemyIntent, outGamePolicy, targetIntensity y rewardHint.",
     "Los enemigos deben venir en enemyBrief con cantidad, tipo, HP sugerido y rasgo tactico; el codigo derivara enemigos concretos.",
     "Usa la semilla, clases, intensidad, peso de combate y cantidad de turnos.",
     "",
@@ -1779,14 +1933,20 @@ function normalizeCampaignMap(campaign, map) {
       const ritual = needsRitual ? (validRitual || fallbackRitual) : null;
       return {
         turn: index + 1,
+        phase: phaseForPlannedTurn(index + 1, campaign.maxTurns),
         beat: turn.beat || `Avance de Vanaheim ${index + 1}`,
         challengeType,
         difficultyBand: turn.difficultyBand || (challengeType === "boss" ? "boss" : "normal"),
         primaryStat: normalizeStatName(turn.primaryStat || "Fuerza"),
         ritualId: ritual?.id || "",
         ritualTitle: ritual?.title || "",
+        ritualSize: ritual?.size || "none",
         enemyBrief: turn.enemyBrief || (needsRitual ? "Amenaza con 1-3 enemigos; HP sugerido 10-18; presion tactica clara." : ""),
-        rewardHint: turn.rewardHint || "pista, memoria, ventaja o loot menor"
+        enemyIntent: turn.enemyIntent || (needsRitual ? "Presionar HP, posicion y ritmo del grupo." : "Complicar la decision sin abrir combate."),
+        outGamePolicy: needsRitual ? (challengeType === "boss" ? "boss-gate" : "combat-only") : "none",
+        targetIntensity: turn.targetIntensity || (challengeType === "boss" ? "boss" : turn.difficultyBand === "hard" ? "high" : "medium"),
+        rewardHint: turn.rewardHint || "pista, memoria, ventaja o loot menor",
+        rewardIntent: turn.rewardIntent || turn.rewardHint || "pista, memoria, ventaja o loot menor"
       };
     })
   };
@@ -1801,6 +1961,13 @@ function normalizeCampaignMap(campaign, map) {
     targetTurn.ritualTitle = ritual.title;
   });
   return normalized;
+}
+
+function phaseForPlannedTurn(turnNumber, maxTurns) {
+  const ratio = turnNumber / Math.max(1, maxTurns);
+  if (ratio <= 0.2) return "act1";
+  if (ratio <= 0.7) return "act2";
+  return "act3";
 }
 
 function buildFallbackCampaignMap(campaign) {
@@ -1831,6 +1998,39 @@ function collectGameActions() {
   ].filter(Boolean).join("\n");
 }
 
+async function repairGmOutput(campaign, originalPrompt, badOutput, validation) {
+  const settings = settingsForRoute("small");
+  const prompt = [
+    "Repara esta salida del GM para Totumas & Aventuras.",
+    "Devuelve solo JSON valido que cumpla el schema. No cambies reglas, DCs, HP o rituales code-owned.",
+    "Conserva la intencion narrativa si es recuperable y agrega actionOptions para ambos heroes si faltan.",
+    "",
+    "Errores detectados:",
+    JSON.stringify(validation.issues || [], null, 2),
+    "",
+    "Prompt original:",
+    originalPrompt,
+    "",
+    "Salida a reparar:",
+    badOutput
+  ].join("\n");
+  try {
+    const result = await callGemini({
+      prompt,
+      settings,
+      apiKey: window.sessionStorage.getItem("tya.gemini.apiKey") || "",
+      responseJsonSchema: GM_TURN_SCHEMA,
+      systemInstruction: `${buildSystemInstruction(state)}\n\nEres el reparador pequeno del GM. Responde solo JSON valido.`
+    });
+    const repairedValidation = validateGmOutput(result.text);
+    recordLlmRun({ campaign, prompt, result, validation: repairedValidation, settings });
+    return { result, validation: repairedValidation };
+  } catch (error) {
+    recordLlmRun({ campaign, prompt, error, settings });
+    return null;
+  }
+}
+
 async function generateGmDraft(campaign, playerActions) {
   if (!campaign || ui.llmBusy) return;
   state.settings.llmEndpoint = state.settings.llmEndpoint || "http://127.0.0.1:8787/api/gemini";
@@ -1845,17 +2045,27 @@ async function generateGmDraft(campaign, playerActions) {
     const result = await callGemini({
       prompt: ui.promptOutput,
       settings,
-      apiKey: window.sessionStorage.getItem("tya.gemini.apiKey") || ""
+      apiKey: window.sessionStorage.getItem("tya.gemini.apiKey") || "",
+      systemInstruction: buildSystemInstruction(state)
     });
     const validation = validateGmOutput(result.text);
     recordLlmRun({ campaign, prompt: ui.promptOutput, result, validation, settings });
-    ui.validation = validation;
-    ui.gmOutput = result.text;
-    if (!validation.ok) {
-      ui.llmError = `The GM response needs repair: ${validation.issues.join(" ")}`;
+    let finalValidation = validation;
+    let finalText = result.text;
+    if (!finalValidation.ok) {
+      const repaired = await repairGmOutput(campaign, ui.promptOutput, result.text, finalValidation);
+      if (repaired?.validation?.ok) {
+        finalValidation = repaired.validation;
+        finalText = repaired.result.text;
+      }
+    }
+    ui.validation = finalValidation;
+    ui.gmOutput = finalText;
+    if (!finalValidation.ok) {
+      ui.llmError = `The GM response needs repair: ${finalValidation.issues.join(" ")}`;
       return;
     }
-    setCurrentTurnDraft(state, campaign, validation, result.text);
+    setCurrentTurnDraft(state, campaign, finalValidation, finalText);
     resetTurnInputs();
     ui.llmError = "";
     saveState(state);

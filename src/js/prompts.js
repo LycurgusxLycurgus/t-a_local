@@ -15,11 +15,15 @@ Rituals are not generic side quests. They are diegetic out-game proofs that conn
 
 Every campaign needs a meaningful arc: a premise, Vanaheim pressure, recurring antagonist thread, tactical escalation, discoveries for Piccolo, and turns that change the state of the relationship-world. Every GM turn must keep momentum. A turn must change situation, mechanics, tactical pressure, reward, cost, or discovery.`,
 
-  "assistants.md": `# Assistants Router
+  "general-functions.md": `# General Functions
 
-Use a heavy model for campaign architecture, act maps, full campaign repair, and final recaps.
-Use a medium model for ordinary GM turns, combat narration, ritual integration, and loot flavor.
-Use a small model for validation, extraction, compact summaries, and missing-section repair.`,
+Code routes model work by task: heavy for campaign maps, medium for playable GM turns, small for seed generation and repair. The model should not choose routes.
+
+Campaign maps are code-owned after generation. Each turn plan must include phase, challenge type, difficulty, primary stat, reward intent, enemy intent, and out-game policy. The GM follows the plan and fills fiction.
+
+Combat is a mode, not a prose section. The app owns HP, target numbers, hit rolls, damage rolls, enemy state, ritual gates, and unresolved turns. The GM narrates what those mechanics feel like.
+
+Player-facing text should be concise and diegetic. Do not expose schema terms, routing terms, prompt instructions, or implementation notes in visibleTurnText.`,
 
   "output_contracts.md": `# Output Contracts
 
@@ -49,6 +53,20 @@ The app expects JSON with:
 }
 \`\`\`` 
 };
+
+export function getBridgecruxRegistry(state = null) {
+  const memories = state?.memories || {};
+  return Object.fromEntries(
+    Object.entries(bridgecruxFiles).map(([name, fallback]) => [
+      name,
+      typeof memories[name] === "string" && memories[name].trim() ? memories[name] : fallback
+    ])
+  );
+}
+
+function bridgecruxContent(state, name) {
+  return getBridgecruxRegistry(state)[name] || "";
+}
 
 export const GM_TURN_SCHEMA = {
   type: "object",
@@ -188,10 +206,14 @@ export const CAMPAIGN_MAP_SCHEMA = {
           primaryStat: { type: "string", enum: ["Fuerza", "Inteligencia", "Carisma", "Magnetismo"] },
           ritualId: { type: "string" },
           ritualTitle: { type: "string" },
+          ritualSize: { type: "string", enum: ["micro", "macro", "none"] },
           enemyBrief: { type: "string" },
+          enemyIntent: { type: "string" },
+          outGamePolicy: { type: "string", enum: ["none", "combat-only", "boss-gate"] },
+          targetIntensity: { type: "string", enum: ["low", "medium", "high", "boss"] },
           rewardHint: { type: "string" }
         },
-        required: ["turn", "beat", "challengeType", "difficultyBand", "primaryStat", "ritualId", "ritualTitle", "enemyBrief", "rewardHint"]
+        required: ["turn", "beat", "challengeType", "difficultyBand", "primaryStat", "ritualId", "ritualTitle", "ritualSize", "enemyBrief", "enemyIntent", "outGamePolicy", "targetIntensity", "rewardHint"]
       }
     },
     antagonistThread: { type: "string" },
@@ -204,9 +226,12 @@ export const CAMPAIGN_MAP_SCHEMA = {
   required: ["title", "premise", "campaignArc", "turnPlan", "antagonistThread", "vanaheimPressure", "ritualNotes"]
 };
 
-export function buildSystemInstruction() {
+export function buildSystemInstruction(state = null) {
+  const registry = getBridgecruxRegistry(state);
   return [
-    bridgecruxFiles["universal_system.md"],
+    registry["universal_system.md"],
+    "",
+    registry["general-functions.md"],
     "",
     "Return valid JSON matching the provided schema. visibleTurnText is player-facing GM narration, not a debug report: write compact Spanish prose that naturally includes resolution, scene, tactical situation, and what is at stake, but do not need section headings. Always provide actionOptions with 2-3 concrete choices for Juanete and 2-3 for Ironmole; these become game buttons. Only combat or boss turns require ritualRequest; explore/social turns should set requiresOutGame false and ritualSize none. If challengeSignal.challengeType is combat or boss, include combatRequest with title, objective, enemyHint, and enemies with HP/stat hints. If the compact state contains a campaignMap entry for this turn, follow its beat, challenge type, enemy brief, and ritual title exactly. Do not invent ritual names when a mapped ritual is present. Do not write administrative setup instructions. Do not decide exact DCs. Do not complete out-game rituals for the players."
   ].join("\n");
@@ -254,12 +279,16 @@ export function compactStateForPrompt(state, campaign, playerActions = "") {
 
 export function buildPromptBundle(state, campaign, playerActions = "") {
   const compact = compactStateForPrompt(state, campaign, playerActions);
+  const registry = getBridgecruxRegistry(state);
   return [
     "SYSTEM FILE: universal_system.md",
-    bridgecruxFiles["universal_system.md"],
+    registry["universal_system.md"],
+    "",
+    "SYSTEM FILE: general-functions.md",
+    registry["general-functions.md"],
     "",
     "OUTPUT CONTRACT: output_contracts.md",
-    bridgecruxFiles["output_contracts.md"],
+    registry["output_contracts.md"],
     "",
     "COMPACT STATE JSON",
     JSON.stringify(compact, null, 2),

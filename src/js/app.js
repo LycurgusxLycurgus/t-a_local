@@ -6,7 +6,7 @@ import { addRitual, deleteRitual, ritualStats } from "./rituals.js";
 import { addDiscovery, levelUp, setPetImageFromFile } from "./epicurogotchi.js";
 import { exportBundle, importBundle } from "./importExport.js";
 import { CLASS_TABLE, modifierFor, rollD20, scoreFromTimingPercent, targetForDifficulty } from "./rules.js";
-import { callGemini, GEMINI_MODEL_TIERS, GEMINI_MODES } from "./llmClient.js";
+import { callGemini, defaultLlmEndpoint, GEMINI_MODEL_TIERS, GEMINI_MODES, isLocalBrowserOrigin, normalizeLlmEndpoint } from "./llmClient.js";
 import { routeForTier } from "./llmConfig.js";
 import { CAMPAIGN_MAP_SCHEMA, GM_TURN_SCHEMA, SEED_SCHEMA } from "./prompts.js";
 
@@ -1405,7 +1405,7 @@ function settingsForRoute(tier) {
     ...route,
     modelTier: tier,
     llmMode: state.settings.llmMode || "generate-content",
-    llmEndpoint: state.settings.llmEndpoint || "http://127.0.0.1:8787/api/gemini"
+    llmEndpoint: normalizeLlmEndpoint(state.settings.llmEndpoint)
   };
 }
 
@@ -1416,7 +1416,8 @@ function normalizeStoredSettings() {
     thinkingLevel: route.thinkingLevel || state.settings.thinkingLevel || "high",
     thinkingBudget: route.thinkingBudget ?? state.settings.thinkingBudget ?? 16000,
     temperature: route.temperature ?? 0.85,
-    maxOutputTokens: route.maxOutputTokens ?? 20000
+    maxOutputTokens: route.maxOutputTokens ?? 20000,
+    llmEndpoint: normalizeLlmEndpoint(state.settings.llmEndpoint)
   };
 }
 
@@ -1450,7 +1451,7 @@ function bindEvents() {
     const campaign = createCampaign(state, data);
     ui.setupForm = {};
     ui.setupClasses = {};
-    state.settings.llmEndpoint = state.settings.llmEndpoint || "http://127.0.0.1:8787/api/gemini";
+    state.settings.llmEndpoint = normalizeLlmEndpoint(state.settings.llmEndpoint);
     resetTurnInputs();
     saveState(state);
     ui.view = "play";
@@ -1600,7 +1601,13 @@ function bindEvents() {
   });
 
   document.querySelector("[data-action='use-local-proxy']")?.addEventListener("click", () => {
-    state.settings.llmEndpoint = "http://127.0.0.1:8787/api/gemini";
+    if (!isLocalBrowserOrigin()) {
+      state.settings.llmEndpoint = "";
+      saveState(state);
+      showToast("Local proxy is only available on localhost. Using direct Gemini.");
+      return;
+    }
+    state.settings.llmEndpoint = defaultLlmEndpoint();
     saveState(state);
     showToast("Local proxy endpoint selected");
   });
@@ -1786,7 +1793,7 @@ function collectLlmSettings() {
   state.settings.thinkingBudget = Number(document.querySelector("[data-input='thinking-budget']")?.value || state.settings.thinkingBudget || 16000);
   state.settings.temperature = Number(document.querySelector("[data-input='temperature']")?.value || state.settings.temperature || 0.85);
   state.settings.maxOutputTokens = Number(document.querySelector("[data-input='max-output-tokens']")?.value || state.settings.maxOutputTokens || 20000);
-  state.settings.llmEndpoint = document.querySelector("[data-input='llm-endpoint']")?.value?.trim() || "";
+  state.settings.llmEndpoint = normalizeLlmEndpoint(document.querySelector("[data-input='llm-endpoint']")?.value || "");
 }
 
 function safeLlmSettings(settings = state.settings) {
@@ -2096,7 +2103,7 @@ async function repairGmOutput(campaign, originalPrompt, badOutput, validation) {
 
 async function generateGmDraft(campaign, playerActions) {
   if (!campaign || ui.llmBusy) return;
-  state.settings.llmEndpoint = state.settings.llmEndpoint || "http://127.0.0.1:8787/api/gemini";
+  state.settings.llmEndpoint = normalizeLlmEndpoint(state.settings.llmEndpoint);
   const settings = settingsForRoute("medium");
   ui.llmBusy = true;
   ui.llmError = "";

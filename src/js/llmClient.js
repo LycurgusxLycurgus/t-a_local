@@ -4,6 +4,29 @@ import { GEMINI_MODES, fallbackModelsForTier, modelForTier, modelTierOptions, ro
 export { GEMINI_MODES, modelForTier };
 export const GEMINI_MODEL_TIERS = modelTierOptions();
 
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
+
+export function isLocalBrowserOrigin() {
+  return typeof window !== "undefined" && LOOPBACK_HOSTS.has(window.location.hostname);
+}
+
+export function defaultLlmEndpoint() {
+  if (typeof window === "undefined") return "";
+  return isLocalBrowserOrigin() && window.location.port === "8787" ? "/api/gemini" : "";
+}
+
+export function normalizeLlmEndpoint(endpoint = "") {
+  const value = String(endpoint || "").trim();
+  if (!value || typeof window === "undefined") return value;
+  try {
+    const url = new URL(value, window.location.origin);
+    if (LOOPBACK_HOSTS.has(url.hostname) && !isLocalBrowserOrigin()) return "";
+  } catch {
+    return value;
+  }
+  return value;
+}
+
 export function extractGeminiText(payload, mode) {
   if (mode === "interactions") {
     const outputs = Array.isArray(payload?.outputs) ? payload.outputs : [];
@@ -35,7 +58,7 @@ export async function callGemini({ prompt, settings, apiKey, responseJsonSchema 
   const route = routeForTier(settings.modelTier);
   const model = modelForTier(settings.modelTier);
   const systemInstruction = overrideSystemInstruction || buildSystemInstruction();
-  const endpoint = settings.llmEndpoint || (window.location.port === "8787" ? "/api/gemini" : "");
+  const endpoint = normalizeLlmEndpoint(settings.llmEndpoint) || defaultLlmEndpoint();
 
   if (endpoint) {
     return callProxyEndpoint({ prompt, settings: { ...settings, ...route, modelTier: settings.modelTier, llmEndpoint: endpoint, llmMode: settings.llmMode }, model, systemInstruction, responseJsonSchema });
